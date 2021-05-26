@@ -2,53 +2,8 @@ import cmath
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-# from fractions import Fraction
 
 class Qubit:
-    @staticmethod
-    def plot(*args, **kwargs):
-        def repel_from_center(x, y, z, m=0.1):
-            return x + (-m if x < 0 else m), \
-                y + (-m if y < 0 else m), \
-                z + (-m if z < 0 else m)
-        def bloch_sphere():
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            u = np.linspace(0, 2*np.pi, 20)
-            v = np.linspace(0, np.pi, 10)
-            x = 1 * np.outer(np.cos(u), np.sin(v))
-            y = 1 * np.outer(np.sin(u), np.sin(v))
-            z = 1 * np.outer(np.ones(np.size(u)), np.cos(v))
-            ax.plot_wireframe(x, y, z, color='gray', linestyle=':')
-            ax.plot3D([-1, 1], [0, 0], [0, 0], color='k', linestyle='--')
-            ax.text(-1.1, 0, 0, '|$-$❭', 'x', horizontalalignment='right', fontweight='bold')
-            ax.text(1.1, 0, 0, '|$+$❭', 'x', horizontalalignment='left', fontweight='bold')
-            ax.plot3D([0, 0], [-1, 1], [0, 0], color='k', linestyle='--')
-            ax.text(0, -1.1, 0, '|$-i$❭', 'y', horizontalalignment='right', fontweight='bold')
-            ax.text(0, 1.1, 0, '|$i$❭', 'y', horizontalalignment='left', fontweight='bold')
-            ax.plot3D([0, 0], [0, 0], [-1, 1], color='k', linestyle='--')
-            ax.text(0, 0, -1.1, '|1❭', 'x', horizontalalignment='center', fontweight='bold')
-            ax.text(0, 0, 1.1, '|0❭', 'x', horizontalalignment='center', fontweight='bold')
-            limits = np.array([getattr(ax, f'get_{axis}lim')() for axis in 'xyz'])
-            ax.set_box_aspect(np.ptp(limits, axis = 1))
-            ax._axis3don = False
-            return ax
-        if kwargs.get('title', False):
-            title = kwargs['title']
-        else:
-            title = ''
-        ax = bloch_sphere()
-        for arg in args:
-            label, color = '|ψ❭', 'r'
-            if type(arg) == tuple:
-                if len(arg) == 3: color = arg[2]
-                label = '|' + arg[1] + '❭'
-                arg = arg[0]
-            ax.quiver(0, 0, 0, arg.x, arg.y, arg.z, color=color)
-            ax.text(*repel_from_center(arg.x, arg.y, arg.z), label, 'x', \
-                horizontalalignment='center', fontweight='bold', color=color)
-        plt.title(title)
-        plt.show()
     KET_0 = np.array([[1.], [0.]])
     KET_1 = np.array([[0.], [1.]])
     def __init__(self):
@@ -60,6 +15,8 @@ class Qubit:
         self.theta = 0.  # zenith  0 ⩽ 𝜃 ⩽ π
         self.phi   = 0.  # azimuth 0 ⩽ 𝜑 ⩽ 2π
         self.validate()
+    def __repr__(self):
+        return str(self.state())
     def validate(self):
         # Spherical coordinates in Bloch sphere (unit sphere)
         if abs(self.theta.imag) < np.finfo(float).eps: self.theta = self.theta.real
@@ -83,6 +40,7 @@ class Qubit:
         self.b = np.sin(self.theta*0.5)*np.exp(1j*self.phi)
         if abs(self.b) < np.finfo(float).eps: self.b = 0.
         elif abs(self.b.imag) < np.finfo(float).eps: self.b = self.b.real
+    ### Setting a qubit ###
     def set_cartesian(self, x, y, z):
         r = np.sqrt(x**2 + y**2 + z**2)
         if r == 0:
@@ -97,11 +55,6 @@ class Qubit:
         self.phi = phi
         self.validate()
     def set_probability_amplitudes(self, a, b):
-        # _tot = abs(a)**2 + abs(b)**2
-        # _a = np.sqrt(abs(a)**2/_tot)
-        # _b = np.sqrt(abs(b)**2/_tot)
-        # a = _a if a > 0 else -1*_a
-        # b = _b if b > 0 else -1*_b
         if abs(a.imag) < np.finfo(float).eps: a = a.real
         elif abs(a.imag) > 0: 
             r1, e1 = abs(a), cmath.phase(a)
@@ -143,6 +96,7 @@ class Qubit:
         self.set_probability_amplitudes(a, b)
     def set_as(self, other):
         self.set_probability_amplitudes(other.a, other.b)
+    ### Functions ###
     def ket(self):
         return self.a*Qubit.KET_0 + self.b*Qubit.KET_1
     def state(self):
@@ -163,16 +117,6 @@ class Qubit:
         sigma_x = np.array([[0, 1], [1, 0]])
         aux.set_state(sigma_x @ self.state())
         return aux
-    # def X_gate_alt(self):
-    #     aux = Qubit()
-    #     sigma_x = np.array([
-    #         [ 1,  0,  0], 
-    #         [ 0, -1,  0],
-    #         [ 0,  0, -1],
-    #     ])
-    #     tmp = sigma_x @ self.vector()
-    #     aux.set_cartesian(tmp[0,0], tmp[1,0], tmp[2,0])
-    #     return aux
     def Z_gate(self):
         aux = Qubit()
         sigma_z = np.array([[1, 0], [0, -1]])
@@ -232,95 +176,9 @@ class Qubit:
         aux = Qubit()
         aux.set_ket('0')
         return aux
-    ### ###
-    def __repr__(self):
-        return str(self.state())
 
 
 if __name__ == '__main__':
     q = Qubit()
     print(q.state())
 
-    q.set_probability_amplitudes(np.sqrt(2)/2, np.sqrt(2)/2)
-    q.set_probability_amplitudes(0.5, 0.5)
-    print(q.state())
-    print(q.vector())
-    # print(q.probability(1))
-    print('Prob{|0>}:', q.pb_0())
-    print('Prob{|1>}:', q.pb_1())
-    q.set_cartesian(np.sqrt(2)/2, np.sqrt(2)/2, 0)
-    print(q.state())
-    print(q.vector())
-    print('Prob{|0>}:', q.pb_0())
-    print('Prob{|1>}:', q.pb_1())
-
-    q.set_cartesian(5, 5, 0)
-    print(q.state())
-    print(q.vector())
-    print('Prob{|0>}:', q.pb_0())
-    print('Prob{|1>}:', q.pb_1())
-
-    q.set_spherical(np.pi/2, np.pi/4)
-    print(q.state())
-    print(q.vector())
-    print('Prob{|0>}:', q.pb_0())
-    print('Prob{|1>}:', q.pb_1())
-
-    for i in range(100):
-        print(q.measure())
-
-    q.set_cartesian(1, 1, 1)
-    p = q.X_gate()
-    print(p.state())
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="X gate") 
-
-    # q.set_cartesian(1, 1, 1)
-    p = q.Z_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="Z gate") 
-
-    # q.set_cartesian(0, 1, 0)
-    p = q.Y_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="Y gate") 
-
-    p = q.ID_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="ID gate") 
-
-    q.set_ket('-')
-    p = q.H_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="H gate") 
-
-    q.set_cartesian(1, 1, 1)
-    phi = np.pi
-    p = q.Rz_phi_gate(phi)
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title=f"$R^z_\phi$ gate, $\phi={phi:.3f}$ rad") 
-
-    phi = np.pi
-    p = q.Rx_phi_gate(phi)
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title=f"$R^x_\phi$ gate, $\phi={phi:.3f}$ rad") 
-
-    phi = np.pi
-    p = q.Ry_phi_gate(phi)
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title=f"$R^y_\phi$ gate, $\phi={phi:.3f}$ rad") 
-
-
-    p = q.S_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="S gate") 
-
-    p = q.S_cross_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="S† gate") 
-
-    p = q.T_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="T gate") 
-
-    p = q.T_cross_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="T† gate") 
-
-    p = q.sqNOT_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="$\sqrt{NOT}$ gate") 
-
-    p = q.RESET_gate()
-    Qubit.plot((q, 'q'), (p, 'p', 'b'), title="RESET gate") 
-
-
-    for i in list((n-18)/18 for n in range(37)):
-        print(np.arccos(i))
