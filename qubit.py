@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+from gates import QGATES
+
 class Qubit:
     KET_0 = np.array([[1.], [0.]])
     KET_1 = np.array([[0.], [1.]])
@@ -121,94 +123,148 @@ class Qubit:
         plt.grid('on')
         plt.show()
     ### GATES ###
-    def X_gate(self):
+    def X_gate(self, apply_to_self=True):
+        sigma_x = QGATES['X']
+        if apply_to_self:
+            self.set_state(sigma_x @ self.state())
+            return
         aux = Qubit()
-        sigma_x = np.array([[0, 1], [1, 0]])
         aux.set_state(sigma_x @ self.state())
         return aux
-    def Z_gate(self):
+    def Z_gate(self, apply_to_self=True):
+        sigma_z = QGATES['Z']
+        if apply_to_self:
+            self.set_state(sigma_z @ self.state())
+            return
         aux = Qubit()
-        sigma_z = np.array([[1, 0], [0, -1]])
         aux.set_state(sigma_z @ self.state())
         return aux
-    def Y_gate(self):
+    def Y_gate(self, apply_to_self=True):
+        sigma_y = QGATES['Y']
+        if apply_to_self:
+            self.set_state(sigma_y @ self.state())
+            return
         aux = Qubit()
-        sigma_y = 1j*np.array([[0, -1], [1, 0]])
         aux.set_state(sigma_y @ self.state())
         return aux
-    def ID_gate(self):
+    def ID_gate(self, apply_to_self=True):
+        sigma_id = QGATES['ID']
+        if apply_to_self:
+            self.set_state(sigma_id @ self.state())
+            return
         aux = Qubit()
-        sigma_id = np.array([[1, 0], [0, 1]])
         aux.set_state(sigma_id @ self.state())
         return aux
-    def H_gate(self):
+    def H_gate(self, apply_to_self=True):
+        sigma_h = QGATES['H']
+        if apply_to_self:
+            self.set_state(sigma_h @ self.state())
+            return
         aux = Qubit()
-        sigma_h = 1/np.sqrt(2)*np.array([[1, 1], [1, -1]])
         aux.set_state(sigma_h @ self.state())
         return aux
-    def Rz_phi_gate(self, phi):
+    def Rz_phi_gate(self, phi, apply_to_self=True):
+        sigma_rz = QGATES['Rz_phi'](phi)
+        if apply_to_self:
+            self.set_state(sigma_rz @ self.state())
+            return
         aux = Qubit()
-        sigma_rz = np.array([[1, 0], [0, np.exp(phi*1j)]])
         aux.set_state(sigma_rz @ self.state())
         return aux
-    def S_gate(self):
-        return self.Rz_phi_gate(np.pi/2)
-    def S_cross_gate(self):
-        return self.Rz_phi_gate(3*np.pi/2)
-    def T_gate(self):
-        return self.Rz_phi_gate(np.pi/4)
-    def T_cross_gate(self):
-        return self.Rz_phi_gate(7*np.pi/4)
-    def Rx_phi_gate(self, phi):
+    def S_gate(self, apply_to_self=True):
+        sigma_s = QGATES['S']
+        if apply_to_self:
+            self.set_state(sigma_s @ self.state())
+            return
         aux = Qubit()
-        sigma_rx = np.array([
-            [np.cos(phi/2), -np.sin(phi/2)*1j], 
-            [-np.sin(phi/2)*1j, np.cos(phi/2)]
-        ])
+        aux.set_state(sigma_s @ self.state())
+        return aux
+    def S_cross_gate(self, apply_to_self=True):
+        sigma_s = QGATES['S+']
+        if apply_to_self:
+            self.set_state(sigma_s @ self.state())
+            return
+        aux = Qubit()
+        aux.set_state(sigma_s @ self.state())
+        return aux
+    def T_gate(self, apply_to_self=True):
+        sigma_t = QGATES['T']
+        if apply_to_self:
+            self.set_state(sigma_t @ self.state())
+            return
+        aux = Qubit()
+        aux.set_state(sigma_t @ self.state())
+        return aux
+    def T_cross_gate(self, apply_to_self=True):
+        sigma_t = QGATES['T+']
+        if apply_to_self:
+            self.set_state(sigma_t @ self.state())
+            return
+        aux = Qubit()
+        aux.set_state(sigma_t @ self.state())
+        return aux
+    def Rx_phi_gate(self, phi, apply_to_self=True):
+        sigma_rx = QGATES['Rx_phi'](phi)
+        if apply_to_self:
+            self.set_state(sigma_rx @ self.state())
+            return
+        aux = Qubit()
         aux.set_state(sigma_rx @ self.state())
         return aux
-    def Ry_phi_gate(self, phi):
+    def Ry_phi_gate(self, phi, apply_to_self=True):
+        sigma_ry = QGATES['Ry_phi'](phi)
+        if apply_to_self:
+            self.set_state(sigma_ry @ self.state())
+            return
         aux = Qubit()
-        sigma_ry = np.array([
-            [np.cos(phi/2), -np.sin(phi/2)], 
-            [np.sin(phi/2), np.cos(phi/2)]
-        ])
         aux.set_state(sigma_ry @ self.state())
         return aux
-    def sqNOT_gate(self):
+    def sqNOT_gate(self, apply_to_self=True):
+        sigma_sn = QGATES['sqNOT']
+        if apply_to_self:
+            self.set_state(sigma_sn @ self.state())
+            return
         aux = Qubit()
-        sigma_sn = 0.5*np.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]])
         aux.set_state(sigma_sn @ self.state())
         return aux
-    def RESET_gate(self):
+    def RESET_gate(self, apply_to_self=True):
         """Use of this operation may make your code non-portable."""
+        if apply_to_self:
+            self.set_ket('0')
+            return
         aux = Qubit()
         aux.set_ket('0')
         return aux
 
 class MultiQubits:
-    # tensor product a b == np.kron(a, b)
+    # KET_PHIp = np.array([[np.sqrt(2)/2], [np.sqrt(2)/2]])  |00> |11>
+    # KET_PHIm = np.array([[np.sqrt(2)/2], [-np.sqrt(2)/2]]) |00> |11>
+    # KET_PSIp = np.array([[np.sqrt(2)/2], [np.sqrt(2)/2]])  |01> |10>
+    # KET_PSIm = np.array([[np.sqrt(2)/2], [-np.sqrt(2)/2]]) |01> |10>
     def __init__(self, nr_qubits):
         self.qubits = list(Qubit() for _ in range(nr_qubits))
         self.nr_qubits = nr_qubits
+        self._state = self.state()
     def __getitem__(self, index):
-        return self.state()[index, 0]
+        return self.qubits[index]
     def state(self):
         if len(self.qubits) > 0:
             s = self.qubits[0].state()
             for q in self.qubits[1:]:
                 s = np.kron(s, q.state())
         return s
+    def bin(self, num):
+        b = bin(num)[2:]
+        lb = len(b)
+        return "0"*(self.nr_qubits - lb) + b \
+            if lb <= self.nr_qubits else b[-self.nr_qubits:]
     def probabilities(self):
         return np.abs(self.state())**2
     def table_prob(self):
-        def _bin(num):
-            b = bin(i)[2:]
-            return "0"*(self.nr_qubits - len(b)) + b
         t = "st" + " "*(self.nr_qubits - 2) + "| Prob\n"
         t += "--" + "-"*self.nr_qubits + "------\n"
         for i in range(2**self.nr_qubits):
-            t += f"{_bin(i)}| {100*abs(self[i])**2:.1f}%\n"
+            t += f"{self.bin(i)}| {100*abs(self._state[i, 0])**2:.1f}%\n"
         return t
     def set(self, *args):
         if len(args) == self.nr_qubits:
@@ -217,8 +273,45 @@ class MultiQubits:
                     self.qubits[i].set_ket(arg)
                 elif type(arg) in [tuple, list]:
                     self.qubits[i].set(*arg)
+            self._state = self.state()
         else:
             raise Exception(f"Expecting {self.nr_qubits}, not {len(args)} to set qubits")
+    def measure(self):
+        prob = list(p[0] for p in self.probabilities().tolist())
+        chosen = np.random.choice(2**self.nr_qubits, size=None, p=prob, replace=True)
+        return self.bin(chosen)
+    def histogram(self, outcomes, labels, plot=True, perc=False):
+        h = dict()
+        bins = []
+        for l in labels:
+            c = outcomes.count(l)
+            h[l] = c
+            bins.append(c)
+        if perc:
+            total = len(outcomes)
+            for i, l in enumerate(labels):
+                h[l] /= total
+                bins[i] /= total
+        if plot:
+            plt.rcParams.update({'font.size': 14})
+            fig, ax = plt.subplots()
+            ax.barh(labels, bins, align='center')
+            ax.invert_yaxis()
+            ax.grid('on')
+            plt.title("Probabilities for outcomes")
+            plt.xlabel("probability")
+            plt.ylabel("outcome")
+            plt.show()
+        return h
+    def simulate(self, times=100, plot=True, perc=True):
+        measurements = []
+        for i in range(times):
+            measurements.append(self.measure())
+        h = self.histogram(measurements, 
+            list(self.bin(s) for s in range(2**self.nr_qubits)), 
+            plot, perc)
+        return h
+    
 
 
 if __name__ == '__main__':
@@ -229,6 +322,12 @@ if __name__ == '__main__':
     qs = MultiQubits(3)
     qs.set(
         # |0❭     |1❭
+        # (1,0),
+        # (1,1),
+        # (1,0),
+        # (1,      1  ),
+        # (1,      1  ),
+        # (1,      1  )
         (.3-.3j, 0.8   ),
         (1,      2     ),
         (0.8,    .3-.3j)
@@ -238,9 +337,17 @@ if __name__ == '__main__':
     s = qs.state()
     print(s.size)
     print(s)
+
+    print(qs.bin(1024))
     # print('      00     01     10     11')
     # for i in range(2):
     #     for j in range(2):
     #         qs.set(i, (3,3))
     #         s = qs.state()
     #         print(i, 's', f"{s.tolist()}'")
+
+    # for _ in range(20):
+    #     print(qs.measure(), end=', ')
+    # print(" ")
+
+    qs.simulate(1000)
