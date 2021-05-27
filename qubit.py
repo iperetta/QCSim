@@ -227,12 +227,17 @@ if __name__ == '__main__':
     # print(q.state())
     # q.simulate(1000)
     qs = MultiQubits(3)
-    qs.set((.3-.3j, 0.8),(1,2),(0.8, .3-.3j))
+    qs.set(
+        # |0❭     |1❭
+        (.3-.3j, 0.8   ),
+        (1,      2     ),
+        (0.8,    .3-.3j)
+    )
+    print(qs.table_prob())
     # qs.set(0,(1,1))
     s = qs.state()
     print(s.size)
     print(s)
-    print(qs.table_prob())
     # print('      00     01     10     11')
     # for i in range(2):
     #     for j in range(2):
