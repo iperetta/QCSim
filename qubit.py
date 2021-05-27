@@ -25,7 +25,8 @@ class Qubit:
         self.theta %= 2*np.pi
         if self.theta > np.pi: # if self.theta == π
             self.theta = 2*np.pi - self.theta
-        # -- azimuth 0 ⩽ 𝜑 ⩽ 2π
+            self.phi += np.pi ###################################### verificar
+        # -- azimuth 0 ⩽ 𝜑 < 2π
         self.phi %= 2*np.pi
         # Cartesian coordinates
         self.x = np.sin(self.theta)*np.cos(self.phi)
@@ -35,9 +36,9 @@ class Qubit:
         self.z = np.cos(self.theta)
         if abs(self.z) < np.finfo(float).eps: self.z = 0.
         # Probability amplitudes
-        self.a = np.cos(self.theta*0.5)
+        self.a = np.cos(self.theta*0.5) # a \in R
         if abs(self.a) < np.finfo(float).eps: self.a = 0.
-        self.b = np.sin(self.theta*0.5)*np.exp(1j*self.phi)
+        self.b = np.sin(self.theta*0.5)*np.exp(1j*self.phi) # b \in C
         if abs(self.b) < np.finfo(float).eps: self.b = 0.
         elif abs(self.b.imag) < np.finfo(float).eps: self.b = self.b.real
     ### Setting a qubit ###
@@ -55,21 +56,21 @@ class Qubit:
         self.phi = phi
         self.validate()
     def set_probability_amplitudes(self, a, b):
-        if abs(a.imag) < np.finfo(float).eps: a = a.real
-        elif abs(a.imag) > 0: 
-            r1, e1 = abs(a), cmath.phase(a)
-            r2, e2 = abs(b), cmath.phase(b)
+        if abs(a.imag) < np.finfo(float).eps: a = a.real # protect
+        elif abs(a.imag) > 0: # ensure a \in R
+            r1, phi1 = abs(a), cmath.phase(a)
+            r2, phi2 = abs(b), cmath.phase(b)
             a = r1
-            b = r2*np.exp(1j*(e2-e1))
+            b = r2*np.exp(1j*(phi2-phi1))
         _tot = abs(a)**2 + abs(b)**2
         if _tot == 0: _tot = 1
         _a = np.sqrt(abs(a)**2/_tot)
         _b = np.sqrt(abs(b)**2/_tot)
         a = _a if a >= 0 else -1*_a
-        b = b*(_b/abs(b)) if abs(b) > 0 else 0
-        if a == 0 and b == 0: a = 1
+        b = 0 if abs(b) < np.finfo(float).eps else b*(_b/abs(b))
+        if a == 0 and b == 0: a = 1 # protect
         self.theta = 2*np.arccos(a)
-        self.phi = np.arctan2(b.imag, b.real)
+        self.phi = np.arctan2(b.imag, b.real) #!
         self.validate()
     def set_ket(self, symbol):
         if type(symbol) == int:
@@ -110,7 +111,15 @@ class Qubit:
     def pb_1(self):
         return self.probability(1)
     def measure(self):
-        return [0] if np.random.rand() < self.pb_0() else [1]
+        return 0 if np.random.rand() < self.pb_0() else 1
+    def simulate(self, times=100):
+        measurements = np.zeros((times, ))
+        for i in range(times):
+            measurements[i] = self.measure()
+        plt.figure()
+        plt.hist(measurements, bins=[-0.1, 0.1, 0.9, 1.1], orientation='vertical', density=True)
+        plt.grid('on')
+        plt.show()
     ### GATES ###
     def X_gate(self):
         aux = Qubit()
@@ -177,8 +186,42 @@ class Qubit:
         aux.set_ket('0')
         return aux
 
+class MultiQubits:
+    # tensor product a b == np.kron(a, b)
+    def __init__(self, nr_qubits):
+        self.qubits = list(Qubit() for _ in range(nr_qubits))
+        self.nr_qubits = nr_qubits
+    def state(self):
+        if len(self.qubits) > 0:
+            s = self.qubits[0].state()
+            for q in self.qubits[1:]:
+                s = np.kron(s, q.state())
+        return s
+    def set(self, *args):
+        if len(args) == self.nr_qubits:
+            for i, arg in enumerate(args):
+                if type(arg) in [int, str]:
+                    self.qubits[i].set_ket(arg)
+                elif type(arg) in [tuple, list]:
+                    self.qubits[i].set(*arg)
+        else:
+            raise Exception(f"Expecting {self.nr_qubits}, not {len(args)} to set qubits")
+
 
 if __name__ == '__main__':
-    q = Qubit()
-    print(q.state())
-
+    # q = Qubit()
+    # q.set(1,1)
+    # print(q.state())
+    # q.simulate(1000)
+    qs = MultiQubits(3)
+    qs.set(0,0,0)
+    # qs.set(0,(1,1))
+    s = qs.state()
+    print(s.size)
+    print(s)
+    # print('      00     01     10     11')
+    # for i in range(2):
+    #     for j in range(2):
+    #         qs.set(i, (3,3))
+    #         s = qs.state()
+    #         print(i, 's', f"{s.tolist()}'")
