@@ -244,9 +244,9 @@ def fn_btnGates(event):
             h = k[1]
             if 'phi' in k[0]:
                 phi = sldPhiGate.val * np.pi
-                p = eval(f"q.{k[0]}_gate({phi}, apply_to_self=False)")
+                p = eval(f"q.{k[0]}_gate({phi}, to_self=False)")
             else:
-                p = eval(f"q.{k[0]}_gate(apply_to_self=False)")
+                p = eval(f"q.{k[0]}_gate(to_self=False)")
             break
     update_fields()
     plot_qubits(q, (p, f"{h}|ψ❭", 'b'), axis=ax)

@@ -6,10 +6,10 @@ phi_zfun = lambda phi : np.array([
 ])
 
 QGATES = {
-    'X': np.array([[0, 1], [1, 0]]),
-    'Y': 1j*np.array([[0, -1], [1, 0]]),
-    'Z': np.array([[1, 0], [0, -1]]),
-    'ID': np.array([[1, 0], [0, 1]]),
+    'X': np.array([[0., 1.], [1., 0.]]),
+    'Y': 1j*np.array([[0., -1.], [1., 0.]]),
+    'Z': np.array([[1., 0.], [0., -1.]]),
+    'ID': np.array([[1., 0.], [0., 1.]]),
     'H': 1/np.sqrt(2)*np.array([[1, 1], [1, -1]]),
     'Rx_phi': lambda phi : np.array([
         [np.cos(phi/2), -np.sin(phi/2)*1j], 
