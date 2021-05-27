@@ -25,7 +25,7 @@ class Qubit:
         self.theta %= 2*np.pi
         if self.theta > np.pi: # if self.theta == π
             self.theta = 2*np.pi - self.theta
-            self.phi += np.pi ###################################### verificar
+            self.phi += np.pi
         # -- azimuth 0 ⩽ 𝜑 < 2π
         self.phi %= 2*np.pi
         # Cartesian coordinates
@@ -191,12 +191,25 @@ class MultiQubits:
     def __init__(self, nr_qubits):
         self.qubits = list(Qubit() for _ in range(nr_qubits))
         self.nr_qubits = nr_qubits
+    def __getitem__(self, index):
+        return self.state()[index, 0]
     def state(self):
         if len(self.qubits) > 0:
             s = self.qubits[0].state()
             for q in self.qubits[1:]:
                 s = np.kron(s, q.state())
         return s
+    def probabilities(self):
+        return np.abs(self.state())**2
+    def table_prob(self):
+        def _bin(num):
+            b = bin(i)[2:]
+            return "0"*(self.nr_qubits - len(b)) + b
+        t = "st" + " "*(self.nr_qubits - 2) + "| Prob\n"
+        t += "--" + "-"*self.nr_qubits + "------\n"
+        for i in range(2**self.nr_qubits):
+            t += f"{_bin(i)}| {100*abs(self[i])**2:.1f}%\n"
+        return t
     def set(self, *args):
         if len(args) == self.nr_qubits:
             for i, arg in enumerate(args):
@@ -214,11 +227,12 @@ if __name__ == '__main__':
     # print(q.state())
     # q.simulate(1000)
     qs = MultiQubits(3)
-    qs.set(0,0,0)
+    qs.set((.3-.3j, 0.8),(1,2),(0.8, .3-.3j))
     # qs.set(0,(1,1))
     s = qs.state()
     print(s.size)
     print(s)
+    print(qs.table_prob())
     # print('      00     01     10     11')
     # for i in range(2):
     #     for j in range(2):
