@@ -5,6 +5,7 @@ from qubit import Qubit
 
 # Define qubit
 q = Qubit()
+p = Qubit()
 
 # To plot qubits
 def plot_qubits(*args, **kwargs):
@@ -113,20 +114,24 @@ ax_qubit.set_axis_off()
 def fn_btnKets(event):
     for k in ax_btnKets.keys():
         if event.inaxes == ax_btnKets[k]['geom']:
-            q.set_ket(k)
+            if k == '\mathcal{G}\,{\psi}':
+                q.set_as(p)
+            else:
+                q.set_ket(k)
             break
     update_fields()
     plot_qubits(q, axis=ax)
     fig.canvas.draw() # redraw figure
 ax_btnKets = dict((l, {'geom': None, 'widget': None}) \
-    for l in ['0', '1', '+', '-', 'i', '-i'])
+    for l in ['0', '1', '+', '-', 'i', '-i', '\mathcal{G}\,{\psi}'])
 x_ref = 0.05
 y_ref = 0.85
-w_ref = 0.05
-for k in ax_btnKets.keys():
+w_ref = 0.0406
+aux = ax_btnKets.keys()
+for i, k in enumerate(aux):
     ax_btnKets[k]['geom'] = plt.axes((x_ref, y_ref, w_ref, 0.05)) # xpos, ypos, width, height
     ax_btnKets[k]['widget'] = Button(ax_btnKets[k]['geom'], label=f'|${k}$⟩', 
-        color='gray', hovercolor='lightblue')
+        color='blue' if i == len(aux)-1 else 'gray', hovercolor='lightblue')
     ax_btnKets[k]['widget'].on_clicked(fn_btnKets)
     x_ref += 0.0141 + w_ref
 
@@ -244,9 +249,9 @@ def fn_btnGates(event):
             h = k[1]
             if 'phi' in k[0]:
                 phi = sldPhiGate.val * np.pi
-                p = eval(f"q.{k[0]}_gate({phi}, to_self=False)")
+                eval(f"p.set_as(q.{k[0]}_gate({phi}, to_self=False))")
             else:
-                p = eval(f"q.{k[0]}_gate(to_self=False)")
+                eval(f"p.set_as(q.{k[0]}_gate(to_self=False))")
             break
     update_fields()
     plot_qubits(q, (p, f"{h}|ψ❭", 'b'), axis=ax)
