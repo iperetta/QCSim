@@ -522,11 +522,10 @@ class MultiQubits:
     def CSWAP_gate(self, control, qba_idx, qbb_idx, to_self=True):
         """Also known as Fredkin gate"""
         state = self.state()
+        if control == qba_idx or control == qbb_idx:
+            raise Exception("Qubit cannot be controled by itself")
         if qba_idx == qbb_idx:
-            if not to_self:
-                aux = MultiQubits(self.nr_qubits)
-                aux.set(state)
-            return None if to_self else aux
+            raise Exception("Nothing to control here")
         args = list((i, 'ID') for i in range(self.nr_qubits))
         args[control] = (control, '|0><0|')
         sigma_gate_c0_XX = self.multi_gate(*args)
