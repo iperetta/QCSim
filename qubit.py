@@ -240,7 +240,7 @@ class Qubit:
 
 
 
-class MultiQubits:
+class QuRegister:
     # KET_PHIp = np.array([[np.sqrt(2)/2], [np.sqrt(2)/2]])  |00> |11>
     # KET_PHIm = np.array([[np.sqrt(2)/2], [-np.sqrt(2)/2]]) |00> |11>
     # KET_PSIp = np.array([[np.sqrt(2)/2], [np.sqrt(2)/2]])  |01> |10>
@@ -364,7 +364,7 @@ class MultiQubits:
         if to_self:
             self.set(sigma_gate @ self.state())
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(sigma_gate @ self.state())
         return aux
     def apply_gates(self, *args, to_self=True):
@@ -372,7 +372,7 @@ class MultiQubits:
         if to_self:
             self.set(sigma_gate @ self.state())
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(sigma_gate @ self.state())
         return aux
     # def _Hn_unit(self, n):
@@ -395,7 +395,7 @@ class MultiQubits:
         if to_self:
             self.set(sigma_gate @ self.state())
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(sigma_gate @ self.state())
         return aux
     def SWAP_gate(self, qba_idx, qbb_idx, to_self=True):
@@ -404,7 +404,7 @@ class MultiQubits:
         state = self.state()
         if qba_idx == qbb_idx:
             if not to_self:
-                aux = MultiQubits(self.nr_qubits)
+                aux = QuRegister(self.nr_qubits)
                 aux.set(state)
             return None if to_self else aux
         args = list((i, 'ID') for i in range(self.nr_qubits))
@@ -420,12 +420,12 @@ class MultiQubits:
         args[qba_idx] = (qba_idx, '|1><1|')
         args[qbb_idx] = (qbb_idx, '|1><1|')
         sigma_gate_11 = self.multi_gate(*args)
-        res = sigma_gate_00 @ state + sigma_gate_01 @ state + \
-            sigma_gate_10 @ state + sigma_gate_11 @ state
+        res = (sigma_gate_00 + sigma_gate_01 + \
+            sigma_gate_10 + sigma_gate_11) @ state
         if to_self:
             self.set(res)
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(res)
         return aux
     def CU_gate(self, flip_gate, control, flip, to_self=True, phi=None):
@@ -441,11 +441,11 @@ class MultiQubits:
         args[flip] = (flip, flip_gate) if not 'phi' in flip_gate else (flip, flip_gate, phi)
         sigma_gate_1 = self.multi_gate(*args)
         state = self.state()
-        cnot_applied = sigma_gate_0 @ state + sigma_gate_1 @ state
+        cnot_applied = (sigma_gate_0 + sigma_gate_1) @ state
         if to_self:
             self.set(cnot_applied)
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(cnot_applied)
         return aux
     def CNOT_gate(self, control, flip, to_self=True):
@@ -458,7 +458,7 @@ class MultiQubits:
             self.CNOT_gate(control, flip)
             self.apply_gates((control, 'H'), (flip, 'H'))
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(self.state())
         aux.apply_gates((control, 'H'), (flip, 'H'))
         aux.CNOT_gate(flip, control)
@@ -511,12 +511,12 @@ class MultiQubits:
         args[flip] = (flip, 'X')
         sigma_gate_11 = self.multi_gate(*args)
         state = self.state()
-        ccnot_applied = sigma_gate_00 @ state + sigma_gate_01 @ state + \
-            sigma_gate_10 @ state + sigma_gate_11 @ state
+        ccnot_applied = (sigma_gate_00 + sigma_gate_01 + \
+            sigma_gate_10 + sigma_gate_11) @ state
         if to_self:
             self.set(ccnot_applied)
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(ccnot_applied)
         return aux
     def CSWAP_gate(self, control, qba_idx, qbb_idx, to_self=True):
@@ -545,21 +545,22 @@ class MultiQubits:
         args[qba_idx] = (qba_idx, '|1><1|')
         args[qbb_idx] = (qbb_idx, '|1><1|')
         sigma_gate_c1_11 = self.multi_gate(*args)
-        res = sigma_gate_c0_XX @ state + \
-            sigma_gate_c1_00 @ state + sigma_gate_c1_01 @ state + \
-            sigma_gate_c1_10 @ state + sigma_gate_c1_11 @ state
+        res = (sigma_gate_c0_XX +  \
+            sigma_gate_c1_00 + sigma_gate_c1_01 + \
+            sigma_gate_c1_10 + sigma_gate_c1_11) @ state
         if to_self:
             self.set(res)
             return
-        aux = MultiQubits(self.nr_qubits)
+        aux = QuRegister(self.nr_qubits)
         aux.set(res)
         return aux
+    
 
     
 
 
 if __name__ == '__main__':
-    qs = MultiQubits(2)
+    qs = QuRegister(2)
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
@@ -567,7 +568,7 @@ if __name__ == '__main__':
             print(i, j)
             print(qs.state())
     print('***')
-    qs = MultiQubits(2)
+    qs = QuRegister(2)
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
@@ -575,7 +576,7 @@ if __name__ == '__main__':
             print(i, j)
             print(qs.state())
     print('***')
-    qs = MultiQubits(3)
+    qs = QuRegister(3)
     for i in range(2):
         for j in range(2):
             for k in range(2):
