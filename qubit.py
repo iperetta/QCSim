@@ -126,6 +126,7 @@ class Qubit:
         plt.show()
     ### GATES ###
     def X_gate(self, to_self=True):
+        """Also known as Pauli-X gate"""
         sigma_x = QGATES['X']
         if to_self:
             self.set_state(sigma_x @ self.state())
@@ -133,21 +134,23 @@ class Qubit:
         aux = Qubit()
         aux.set_state(sigma_x @ self.state())
         return aux
-    def Z_gate(self, to_self=True):
-        sigma_z = QGATES['Z']
-        if to_self:
-            self.set_state(sigma_z @ self.state())
-            return
-        aux = Qubit()
-        aux.set_state(sigma_z @ self.state())
-        return aux
     def Y_gate(self, to_self=True):
+        """Also known as Pauli-Y gate"""
         sigma_y = QGATES['Y']
         if to_self:
             self.set_state(sigma_y @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_y @ self.state())
+        return aux
+    def Z_gate(self, to_self=True):
+        """Also known as Pauli-Z gate"""
+        sigma_z = QGATES['Z']
+        if to_self:
+            self.set_state(sigma_z @ self.state())
+            return
+        aux = Qubit()
+        aux.set_state(sigma_z @ self.state())
         return aux
     def ID_gate(self, to_self=True):
         sigma_id = QGATES['ID']
@@ -554,6 +557,17 @@ class QuRegister:
         aux = QuRegister(self.nr_qubits)
         aux.set(res)
         return aux
+    def entanglement(self, qba_idx, qbb_idx, to_self=True):
+        """Bell state |Φ+❭"""
+        sigma = self.multi_gate((qba_idx, 'H'))
+        if to_self:
+            self.set(sigma @ self.state())
+            self.CNOT_gate(qba_idx, qbb_idx, to_self=True)
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(sigma @ self.state())
+        return aux.CNOT_gate(qba_idx, qbb_idx, to_self=False)
+
     
 
     
@@ -584,6 +598,12 @@ if __name__ == '__main__':
                 qs.CSWAP_gate(0, 1, 2)
                 print(i, j, k)
                 print(qs.state())
+    print('***')
+    qs = QuRegister(3)
+    qs.entanglement(0, 2)
+    print(qs.state())
+    qs.simulate(10000)
+
 
     # qs = MultiQubits(3)
     # for i in range(2):
