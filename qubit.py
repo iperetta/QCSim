@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-import qugates as qg
+# import qugates as qgt
+from qugate import QuGates as qg
 
 TOL = 2*np.finfo(float).eps
 
@@ -127,7 +128,7 @@ class Qubit:
     ### GATES ###
     def apply_X(self, to_self=True):
         """Also known as Pauli-X gate"""
-        sigma_x = qg.QUGATES['X']
+        sigma_x = qg.X()
         if to_self:
             self.set_state(sigma_x @ self.state())
             return
@@ -136,7 +137,7 @@ class Qubit:
         return aux
     def apply_Y(self, to_self=True):
         """Also known as Pauli-Y gate"""
-        sigma_y = qg.QUGATES['Y']
+        sigma_y = qg.Y()
         if to_self:
             self.set_state(sigma_y @ self.state())
             return
@@ -145,7 +146,7 @@ class Qubit:
         return aux
     def apply_Z(self, to_self=True):
         """Also known as Pauli-Z gate"""
-        sigma_z = qg.QUGATES['Z']
+        sigma_z = qg.Z()
         if to_self:
             self.set_state(sigma_z @ self.state())
             return
@@ -153,7 +154,7 @@ class Qubit:
         aux.set_state(sigma_z @ self.state())
         return aux
     def apply_ID(self, to_self=True):
-        sigma_id = qg.QUGATES['ID']
+        sigma_id = qg.ID()
         if to_self:
             self.set_state(sigma_id @ self.state())
             return
@@ -161,7 +162,7 @@ class Qubit:
         aux.set_state(sigma_id @ self.state())
         return aux
     def apply_H(self, to_self=True):
-        sigma_h = qg.QUGATES['H']
+        sigma_h = qg.H()
         if to_self:
             self.set_state(sigma_h @ self.state())
             return
@@ -169,7 +170,7 @@ class Qubit:
         aux.set_state(sigma_h @ self.state())
         return aux
     def apply_Rz_phi(self, phi, to_self=True):
-        sigma_rz = qg.QUGATES['Rz_phi'](phi)
+        sigma_rz = qg.Rz_phi(phi)
         if to_self:
             self.set_state(sigma_rz @ self.state())
             return
@@ -177,7 +178,7 @@ class Qubit:
         aux.set_state(sigma_rz @ self.state())
         return aux
     def apply_S(self, to_self=True):
-        sigma_s = qg.QUGATES['S']
+        sigma_s = qg.S()
         if to_self:
             self.set_state(sigma_s @ self.state())
             return
@@ -185,7 +186,7 @@ class Qubit:
         aux.set_state(sigma_s @ self.state())
         return aux
     def apply_S_cross(self, to_self=True):
-        sigma_s = qg.QUGATES['S+']
+        sigma_s = qg.S_cross()
         if to_self:
             self.set_state(sigma_s @ self.state())
             return
@@ -193,7 +194,7 @@ class Qubit:
         aux.set_state(sigma_s @ self.state())
         return aux
     def apply_T(self, to_self=True):
-        sigma_t = qg.QUGATES['T']
+        sigma_t = qg.T()
         if to_self:
             self.set_state(sigma_t @ self.state())
             return
@@ -201,7 +202,7 @@ class Qubit:
         aux.set_state(sigma_t @ self.state())
         return aux
     def apply_T_cross(self, to_self=True):
-        sigma_t = qg.QUGATES['T+']
+        sigma_t = qg.T_cross()
         if to_self:
             self.set_state(sigma_t @ self.state())
             return
@@ -209,7 +210,7 @@ class Qubit:
         aux.set_state(sigma_t @ self.state())
         return aux
     def apply_Rx_phi(self, phi, to_self=True):
-        sigma_rx = qg.QUGATES['Rx_phi'](phi)
+        sigma_rx = qg.Rx_phi(phi)
         if to_self:
             self.set_state(sigma_rx @ self.state())
             return
@@ -217,7 +218,7 @@ class Qubit:
         aux.set_state(sigma_rx @ self.state())
         return aux
     def apply_Ry_phi(self, phi, to_self=True):
-        sigma_ry = qg.QUGATES['Ry_phi'](phi)
+        sigma_ry = qg.Ry_phi(phi)
         if to_self:
             self.set_state(sigma_ry @ self.state())
             return
@@ -225,7 +226,7 @@ class Qubit:
         aux.set_state(sigma_ry @ self.state())
         return aux
     def apply_sqNOT(self, to_self=True):
-        sigma_sn = qg.QUGATES['sqNOT']
+        sigma_sn = qg.sqNOT()
         if to_self:
             self.set_state(sigma_sn @ self.state())
             return
@@ -252,7 +253,6 @@ class QuRegister:
         if nr_qubits < 2:
             raise Exception("Consider using class Qubit for this")
         self.nr_qubits = nr_qubits
-        self.mqg = qg.MQuGates(self.nr_qubits)
         s = list([1.] if i == 0 else [0.] for i in range(2**nr_qubits))
         self._state = np.array(s)
     def __getitem__(self, index):
@@ -353,7 +353,7 @@ class QuRegister:
             plot, perc)
         return h
     def gate_to_apply(self, gate, qubit_idx,  phi=None, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, (qubit_idx, gate, phi))
+        sigma_gate = qgt.multi_gate_sigma(self.nr_qubits, (qubit_idx, gate, phi))
         if to_self:
             self.set(sigma_gate @ self.state())
             return
@@ -361,23 +361,7 @@ class QuRegister:
         aux.set(sigma_gate @ self.state())
         return aux
     def gates_to_apply(self, *args, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, *args)
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
-    def mgate_to_apply(self, gate, *args, to_self=True):
-        sigma_gate = self.mqg.get(gate)(*args)
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
-    def mgates_to_apply(self, *args, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, *args)
+        sigma_gate = qgt.multi_gate_sigma(self.nr_qubits, *args)
         if to_self:
             self.set(sigma_gate @ self.state())
             return
@@ -386,7 +370,7 @@ class QuRegister:
         return aux
     def multi_gate_sigma(self, *args):
         """Args is sequence of tuples each of (qubit_idx, gate) or (qubit_idx, gate, phi)"""
-        sigma_id = qg.QUGATES['ID']
+        sigma_id = qgt.QUGATES['ID']
         sigmas = list(sigma_id for _ in range(self.nr_qubits))
         for arg in args:
             qubit_idx = arg[0]
@@ -394,7 +378,7 @@ class QuRegister:
             phi = None if len(arg) == 2 else arg[2]
             if 'phi' in gate and phi is None:
                 raise Exception(f"Gate {gate} needs 'phi' parameter")
-            sigmas[qubit_idx] = qg.QUGATES[gate]
+            sigmas[qubit_idx] = qgt.QUGATES[gate]
         qgates = sigmas[0]
         for i in range(1, self.nr_qubits):
             qgates = np.kron(qgates, sigmas[i])
@@ -582,7 +566,7 @@ if __name__ == '__main__':
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
-            qs.mqg.CNOT_gate(1, 0)
+            qs.set(qg.CNOT(1, 0) @ qs.state())
             print(i, j)
             print(qs.state())
     print('***')
@@ -590,7 +574,7 @@ if __name__ == '__main__':
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
-            qs.mqg.CNOTrev_gate(0, 1)
+            qs.set(qg.CNOTrev(0, 1) @ qs.state())
             print(i, j)
             print(qs.state())
     print('***')
@@ -599,13 +583,13 @@ if __name__ == '__main__':
         for j in range(2):
             for k in range(2):
                 qs.init_from_qubits(i, j, k)
-                qs.mqg.CSWAP_gate(0, 1, 2)
+                qs.set(qg.CSWAP(0, 1, 2) @ qs.state())
                 print(i, j, k)
                 print(qs.state())
     print('***')
     qs = QuRegister(3)
     qs.init_from_qubits(0,0,0)
-    qs.set(qs.mqg.entanglement(1, 2) @ qs.state())
+    qs.set(qg.entangle(0, 1, nr_qubits=3) @ qs.state())
     print(qs.state())
     qs.simulate(10000)
 

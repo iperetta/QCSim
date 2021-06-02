@@ -1,7 +1,16 @@
 # Attempt to organize code
 import numpy as np
 
-class UnaryQG:
+class QuGates:
+    TOL = 2*np.finfo(float).eps
+    @staticmethod
+    def clean_matrix(a):
+        m, n = a.shape
+        for i in range(m):
+            for j in range(n):
+                if abs(a[i, j]) < QuGates.TOL:
+                    a[i, j] = 0.
+        return a
     @staticmethod
     def ket0_bra0(): 
         return np.array([[1., 0.], [0., 0.]])
@@ -46,37 +55,26 @@ class UnaryQG:
         return np.array([[1, 0], [0, np.exp(phi*1j)]])
     @staticmethod
     def S(): 
-        return UnaryQG.Rz_phi(np.pi/2)
+        return QuGates.Rz_phi(np.pi/2)
     @staticmethod
     def S_cross(): 
-        return UnaryQG.Rz_phi(3*np.pi/2)
+        return QuGates.Rz_phi(3*np.pi/2)
     @staticmethod
     def T(): 
-        return UnaryQG.Rz_phi(np.pi/4)
+        return QuGates.Rz_phi(np.pi/4)
     @staticmethod
     def T_cross(): 
-        return UnaryQG.Rz_phi(7*np.pi/4)
+        return QuGates.Rz_phi(7*np.pi/4)
     @staticmethod
     def sqNOT():
         return 0.5*np.array([
             [1 + 1j, 1 - 1j], 
             [1 - 1j, 1 + 1j]
         ])
-    
-class NArityQG:
-    TOL = 2*np.finfo(float).eps
-    @staticmethod
-    def clean_matrix(a):
-        m, n = a.shape
-        for i in range(m):
-            for j in range(n):
-                if abs(a[i, j]) < NArityQG.TOL:
-                    a[i, j] = 0.
-        return a
     @staticmethod
     def generate(*args, nr_qubits=2):
         """Args is sequence of tuples each of (qubit_idx, gate) or (qubit_idx, gate, phi)"""
-        sigma_id = UnaryQG.ID()
+        sigma_id = QuGates.ID()
         sigmas = list(sigma_id for _ in range(nr_qubits))
         for arg in args:
             qubit_idx = arg[0]
@@ -91,124 +89,124 @@ class NArityQG:
         return qg
     @staticmethod
     def SWAP(qb_idx_a=0, qb_idx_b=1, nr_qubits=2):
-        sigma = NArityQG.generate(
-            (qb_idx_a, UnaryQG.ket0_bra0), (qb_idx_b, UnaryQG.ket0_bra0),
+        sigma = QuGates.generate(
+            (qb_idx_a, QuGates.ket0_bra0), (qb_idx_b, QuGates.ket0_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (qb_idx_a, UnaryQG.ket0_bra1), (qb_idx_b, UnaryQG.ket1_bra0),
+        sigma = sigma + QuGates.generate(
+            (qb_idx_a, QuGates.ket0_bra1), (qb_idx_b, QuGates.ket1_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (qb_idx_a, UnaryQG.ket1_bra0), (qb_idx_b, UnaryQG.ket0_bra1),
+        sigma = sigma + QuGates.generate(
+            (qb_idx_a, QuGates.ket1_bra0), (qb_idx_b, QuGates.ket0_bra1),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (qb_idx_a, UnaryQG.ket1_bra1), (qb_idx_b, UnaryQG.ket1_bra1),
+        sigma = sigma + QuGates.generate(
+            (qb_idx_a, QuGates.ket1_bra1), (qb_idx_b, QuGates.ket1_bra1),
             nr_qubits=nr_qubits
         )
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
     @staticmethod
     def CU(unary_gate, ctrl_idx=0, fx_idx=1, nr_qubits=2):
         phi = None
         if type(unary_gate) is tuple:
             unary_gate, phi = unary_gate
-        sigma = NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket0_bra0),
+        sigma = QuGates.generate(
+            (ctrl_idx, QuGates.ket0_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket1_bra1), (fx_idx, unary_gate, phi),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx, QuGates.ket1_bra1), (fx_idx, unary_gate, phi),
             nr_qubits=nr_qubits
         )
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
     @staticmethod
     def CNOT(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU(UnaryQG.X, ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU(QuGates.X, ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CNOTrev(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        sigma = NArityQG.generate(
-            (ctrl_idx, UnaryQG.H), (fx_idx, UnaryQG.H),
+        sigma = QuGates.generate(
+            (ctrl_idx, QuGates.H), (fx_idx, QuGates.H),
             nr_qubits=nr_qubits
         )
-        sigma = NArityQG.CNOT(ctrl_idx, fx_idx, nr_qubits) \
+        sigma = QuGates.CNOT(ctrl_idx, fx_idx, nr_qubits) \
             @ sigma
-        sigma = NArityQG.generate(
-            (ctrl_idx, UnaryQG.H), (fx_idx, UnaryQG.H),
+        sigma = QuGates.generate(
+            (ctrl_idx, QuGates.H), (fx_idx, QuGates.H),
             nr_qubits=nr_qubits
         ) @ sigma
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
     @staticmethod
     def CX(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU(UnaryQG.X, ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU(QuGates.X, ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CY(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU(UnaryQG.Y, ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU(QuGates.Y, ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CZ(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU(UnaryQG.Z, ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU(QuGates.Z, ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CsqNOT(ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU(UnaryQG.sqNOT, ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU(QuGates.sqNOT, ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CRx_phi(phi, ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU((UnaryQG.Rx_phi, phi), ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU((QuGates.Rx_phi, phi), ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CRy_phi(phi, ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU((UnaryQG.Ry_phi, phi), ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU((QuGates.Ry_phi, phi), ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CRz_phi(phi, ctrl_idx=0, fx_idx=1, nr_qubits=2):
-        return NArityQG.CU((UnaryQG.Rz_phi, phi), ctrl_idx, fx_idx, nr_qubits)
+        return QuGates.CU((QuGates.Rz_phi, phi), ctrl_idx, fx_idx, nr_qubits)
     @staticmethod
     def CSWAP(ctrl_idx=0, qb_idx_a=1, qb_idx_b=2, nr_qubits=3): # Fredkin gate
-        sigma = NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket0_bra0), nr_qubits=nr_qubits
+        sigma = QuGates.generate(
+            (ctrl_idx, QuGates.ket0_bra0), nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket1_bra1),
-            (qb_idx_a, UnaryQG.ket0_bra0), (qb_idx_b, UnaryQG.ket0_bra0),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx, QuGates.ket1_bra1),
+            (qb_idx_a, QuGates.ket0_bra0), (qb_idx_b, QuGates.ket0_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket1_bra1),
-            (qb_idx_a, UnaryQG.ket0_bra1), (qb_idx_b, UnaryQG.ket1_bra0),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx, QuGates.ket1_bra1),
+            (qb_idx_a, QuGates.ket0_bra1), (qb_idx_b, QuGates.ket1_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket1_bra1),
-            (qb_idx_a, UnaryQG.ket1_bra0), (qb_idx_b, UnaryQG.ket0_bra1),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx, QuGates.ket1_bra1),
+            (qb_idx_a, QuGates.ket1_bra0), (qb_idx_b, QuGates.ket0_bra1),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx, UnaryQG.ket1_bra1),
-            (qb_idx_a, UnaryQG.ket1_bra1), (qb_idx_b, UnaryQG.ket1_bra1),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx, QuGates.ket1_bra1),
+            (qb_idx_a, QuGates.ket1_bra1), (qb_idx_b, QuGates.ket1_bra1),
             nr_qubits=nr_qubits
         )
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
     @staticmethod
     def CCNOT(ctrl_idx_a=0, ctrl_idx_b=1, fx_idx=2, nr_qubits=3): # Toffoli gate
-        sigma = NArityQG.generate(
-            (ctrl_idx_a, UnaryQG.ket0_bra0), 
-            (ctrl_idx_b, UnaryQG.ket0_bra0),
+        sigma = QuGates.generate(
+            (ctrl_idx_a, QuGates.ket0_bra0), 
+            (ctrl_idx_b, QuGates.ket0_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx_a, UnaryQG.ket0_bra0), 
-            (ctrl_idx_b, UnaryQG.ket1_bra1),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx_a, QuGates.ket0_bra0), 
+            (ctrl_idx_b, QuGates.ket1_bra1),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx_a, UnaryQG.ket1_bra1), 
-            (ctrl_idx_b, UnaryQG.ket0_bra0),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx_a, QuGates.ket1_bra1), 
+            (ctrl_idx_b, QuGates.ket0_bra0),
             nr_qubits=nr_qubits
         )
-        sigma = sigma + NArityQG.generate(
-            (ctrl_idx_a, UnaryQG.ket1_bra1), 
-            (ctrl_idx_b, UnaryQG.ket1_bra1),
-            (fx_idx, UnaryQG.X),
+        sigma = sigma + QuGates.generate(
+            (ctrl_idx_a, QuGates.ket1_bra1), 
+            (ctrl_idx_b, QuGates.ket1_bra1),
+            (fx_idx, QuGates.X),
             nr_qubits=nr_qubits
         )
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
     @staticmethod
     def entangle(qb_idx_a=0, qb_idx_b=1, nr_qubits=2):
         """
@@ -218,13 +216,13 @@ class NArityQG:
         |10❭  :: |Φ-❭;
         |11❭  :: |Ψ-❭
         """
-        sigma = NArityQG.generate(
-            (qb_idx_a, UnaryQG.H), nr_qubits=nr_qubits
+        sigma = QuGates.generate(
+            (qb_idx_a, QuGates.H), nr_qubits=nr_qubits
         )
-        sigma = NArityQG.CNOT(
+        sigma = QuGates.CNOT(
             qb_idx_a, qb_idx_b, nr_qubits=nr_qubits
         ) @ sigma
-        return NArityQG.clean_matrix(sigma)
+        return QuGates.clean_matrix(sigma)
 
 
 
@@ -283,17 +281,17 @@ if __name__ == '__main__':
     #         print(i, j, '===================')
     #         print(qr.state())
     #         print(NArityQG.SWAP(0, 1) @ qr.state())
-    print(NArityQG.SWAP(0, 1))
-    print(NArityQG.CNOT(1, 0))
-    print(NArityQG.CNOTrev(0, 1))
-    print(NArityQG.CZ(0, 1))
-    print(NArityQG.CRx_phi(np.pi, 0, 1))
-    print(NArityQG.CSWAP(0, 1, 2))
-    print(NArityQG.CCNOT(0, 1, 2))
+    print(QuGates.SWAP(0, 1))
+    print(QuGates.CNOT(1, 0))
+    print(QuGates.CNOTrev(0, 1))
+    print(QuGates.CZ(0, 1))
+    print(QuGates.CRx_phi(np.pi, 0, 1))
+    print(QuGates.CSWAP(0, 1, 2))
+    print(QuGates.CCNOT(0, 1, 2))
     print('****')
     qr = QuRegister(2)
     for i in range(2):
         for j in range(2):
             qr.init_from_qubits(i, j)
             print(i, j, '===================')
-            print(NArityQG.entangle(0, 1) @ qr.state())
+            print(QuGates.entangle(0, 1) @ qr.state())
