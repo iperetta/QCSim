@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-import qugates as qg
+from gates import QGATES
 
 TOL = 2*np.finfo(float).eps
 
@@ -125,114 +125,114 @@ class Qubit:
         plt.grid('on')
         plt.show()
     ### GATES ###
-    def apply_X(self, to_self=True):
+    def X_gate(self, to_self=True):
         """Also known as Pauli-X gate"""
-        sigma_x = qg.QUGATES['X']
+        sigma_x = QGATES['X']
         if to_self:
             self.set_state(sigma_x @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_x @ self.state())
         return aux
-    def apply_Y(self, to_self=True):
+    def Y_gate(self, to_self=True):
         """Also known as Pauli-Y gate"""
-        sigma_y = qg.QUGATES['Y']
+        sigma_y = QGATES['Y']
         if to_self:
             self.set_state(sigma_y @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_y @ self.state())
         return aux
-    def apply_Z(self, to_self=True):
+    def Z_gate(self, to_self=True):
         """Also known as Pauli-Z gate"""
-        sigma_z = qg.QUGATES['Z']
+        sigma_z = QGATES['Z']
         if to_self:
             self.set_state(sigma_z @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_z @ self.state())
         return aux
-    def apply_ID(self, to_self=True):
-        sigma_id = qg.QUGATES['ID']
+    def ID_gate(self, to_self=True):
+        sigma_id = QGATES['ID']
         if to_self:
             self.set_state(sigma_id @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_id @ self.state())
         return aux
-    def apply_H(self, to_self=True):
-        sigma_h = qg.QUGATES['H']
+    def H_gate(self, to_self=True):
+        sigma_h = QGATES['H']
         if to_self:
             self.set_state(sigma_h @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_h @ self.state())
         return aux
-    def apply_Rz_phi(self, phi, to_self=True):
-        sigma_rz = qg.QUGATES['Rz_phi'](phi)
+    def Rz_phi_gate(self, phi, to_self=True):
+        sigma_rz = QGATES['Rz_phi'](phi)
         if to_self:
             self.set_state(sigma_rz @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_rz @ self.state())
         return aux
-    def apply_S(self, to_self=True):
-        sigma_s = qg.QUGATES['S']
+    def S_gate(self, to_self=True):
+        sigma_s = QGATES['S']
         if to_self:
             self.set_state(sigma_s @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_s @ self.state())
         return aux
-    def apply_S_cross(self, to_self=True):
-        sigma_s = qg.QUGATES['S+']
+    def S_cross_gate(self, to_self=True):
+        sigma_s = QGATES['S+']
         if to_self:
             self.set_state(sigma_s @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_s @ self.state())
         return aux
-    def apply_T(self, to_self=True):
-        sigma_t = qg.QUGATES['T']
+    def T_gate(self, to_self=True):
+        sigma_t = QGATES['T']
         if to_self:
             self.set_state(sigma_t @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_t @ self.state())
         return aux
-    def apply_T_cross(self, to_self=True):
-        sigma_t = qg.QUGATES['T+']
+    def T_cross_gate(self, to_self=True):
+        sigma_t = QGATES['T+']
         if to_self:
             self.set_state(sigma_t @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_t @ self.state())
         return aux
-    def apply_Rx_phi(self, phi, to_self=True):
-        sigma_rx = qg.QUGATES['Rx_phi'](phi)
+    def Rx_phi_gate(self, phi, to_self=True):
+        sigma_rx = QGATES['Rx_phi'](phi)
         if to_self:
             self.set_state(sigma_rx @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_rx @ self.state())
         return aux
-    def apply_Ry_phi(self, phi, to_self=True):
-        sigma_ry = qg.QUGATES['Ry_phi'](phi)
+    def Ry_phi_gate(self, phi, to_self=True):
+        sigma_ry = QGATES['Ry_phi'](phi)
         if to_self:
             self.set_state(sigma_ry @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_ry @ self.state())
         return aux
-    def apply_sqNOT(self, to_self=True):
-        sigma_sn = qg.QUGATES['sqNOT']
+    def sqNOT_gate(self, to_self=True):
+        sigma_sn = QGATES['sqNOT']
         if to_self:
             self.set_state(sigma_sn @ self.state())
             return
         aux = Qubit()
         aux.set_state(sigma_sn @ self.state())
         return aux
-    def apply_RESET(self, to_self=True):
+    def RESET_gate(self, to_self=True):
         """Use of this operation may make your code non-portable."""
         if to_self:
             self.set_ket('0')
@@ -252,14 +252,13 @@ class QuRegister:
         if nr_qubits < 2:
             raise Exception("Consider using class Qubit for this")
         self.nr_qubits = nr_qubits
-        self.mqg = qg.MQuGates(self.nr_qubits)
         s = list([1.] if i == 0 else [0.] for i in range(2**nr_qubits))
         self._state = np.array(s)
     def __getitem__(self, index):
         return self._state[index, 0]
     def inverse_kron_product(self, tensor):
         """Reverse kronecker product known solution: Nearest Kronecker Product.
-           Risk of swapping qubits order!!"""
+           Can swap tensor order!!"""
         # https://math.stackexchange.com/questions/60399/method-to-reverse-a-kronecker-product/321424#321424
         m = tensor.shape[0]//2
         R = np.transpose(tensor.reshape(m, 2))
@@ -298,10 +297,6 @@ class QuRegister:
             t += f"{self.bin(i)}| {100*abs(self[i])**2:.1f}%\n"
         return t
     def set(self, s):
-        for i in range(s.shape[0]):
-            if abs(s[i, 0]) < TOL:
-                s[i, 0] = 0
-        s /= np.sum(abs(s)**2)
         self._state = s
     def init_from_qubits(self, *args):
         if len(args) == self.nr_qubits:
@@ -352,41 +347,9 @@ class QuRegister:
             list(self.bin(s) for s in range(2**self.nr_qubits)), 
             plot, perc)
         return h
-    def gate_to_apply(self, gate, qubit_idx,  phi=None, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, (qubit_idx, gate, phi))
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
-    def gates_to_apply(self, *args, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, *args)
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
-    def mgate_to_apply(self, gate, *args, to_self=True):
-        sigma_gate = self.mqg.get(gate)(*args)
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
-    def mgates_to_apply(self, *args, to_self=True):
-        sigma_gate = qg.multi_gate_sigma(self.nr_qubits, *args)
-        if to_self:
-            self.set(sigma_gate @ self.state())
-            return
-        aux = QuRegister(self.nr_qubits)
-        aux.set(sigma_gate @ self.state())
-        return aux
     def multi_gate_sigma(self, *args):
         """Args is sequence of tuples each of (qubit_idx, gate) or (qubit_idx, gate, phi)"""
-        sigma_id = qg.QUGATES['ID']
+        sigma_id = QGATES['ID']
         sigmas = list(sigma_id for _ in range(self.nr_qubits))
         for arg in args:
             qubit_idx = arg[0]
@@ -394,11 +357,27 @@ class QuRegister:
             phi = None if len(arg) == 2 else arg[2]
             if 'phi' in gate and phi is None:
                 raise Exception(f"Gate {gate} needs 'phi' parameter")
-            sigmas[qubit_idx] = qg.QUGATES[gate]
-        qgates = sigmas[0]
+            sigmas[qubit_idx] = QGATES[gate]
+        qg = sigmas[0]
         for i in range(1, self.nr_qubits):
-            qgates = np.kron(qgates, sigmas[i])
-        return qgates
+            qg = np.kron(qg, sigmas[i])
+        return qg
+    def gate_to_apply(self, qubit_idx, gate, phi=None, to_self=True):
+        sigma_gate = self.multi_gate_sigma((qubit_idx, gate, phi))
+        if to_self:
+            self.set(sigma_gate @ self.state())
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(sigma_gate @ self.state())
+        return aux
+    def gates_to_apply(self, *args, to_self=True):
+        sigma_gate = self.multi_gate_sigma(*args)
+        if to_self:
+            self.set(sigma_gate @ self.state())
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(sigma_gate @ self.state())
+        return aux
     # def _Hn_unit(self, n):
     #     if n == 1:
     #         return np.array([[1., 1.], [1., -1.]])
@@ -413,14 +392,24 @@ class QuRegister:
     #     aux = MultiQubits(self.nr_qubits)
     #     aux.set(sigma_gate @ self.state())
     #     return aux
-    def Hn_gate(self):
+    def Hn_gate(self, to_self=True):
         args = list((i, 'H') for i in range(self.nr_qubits))
-        return self.multi_gate_sigma(*args)
-    def SWAP_gate(self, qba_idx, qbb_idx):
+        sigma_gate = self.multi_gate_sigma(*args)
+        if to_self:
+            self.set(sigma_gate @ self.state())
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(sigma_gate @ self.state())
+        return aux
+    def SWAP_gate(self, qba_idx, qbb_idx, to_self=True):
         # https://quantumcomputing.stackexchange.com/a/5192/16056 # The Algorithmic Method
         # https://quantumcomputing.stackexchange.com/a/9182/16056 
+        state = self.state()
         if qba_idx == qbb_idx:
-            raise Exception("Review SWAP for same qubit")
+            if not to_self:
+                aux = QuRegister(self.nr_qubits)
+                aux.set(state)
+            return None if to_self else aux
         args = list((i, 'ID') for i in range(self.nr_qubits))
         args[qba_idx] = (qba_idx, '|0><0|')
         args[qbb_idx] = (qbb_idx, '|0><0|')
@@ -434,7 +423,14 @@ class QuRegister:
         args[qba_idx] = (qba_idx, '|1><1|')
         args[qbb_idx] = (qbb_idx, '|1><1|')
         sigma_gate_11 = self.multi_gate_sigma(*args)
-        return (sigma_gate_00 + sigma_gate_01 + sigma_gate_10 + sigma_gate_11) 
+        res = (sigma_gate_00 + sigma_gate_01 + \
+            sigma_gate_10 + sigma_gate_11) @ state
+        if to_self:
+            self.set(res)
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(res)
+        return aux
     def CU_gate(self, flip_gate, control, flip, to_self=True, phi=None):
         # https://quantumcomputing.stackexchange.com/questions/5409/composing-the-cnot-gate-as-a-tensor-product-of-two-level-matrices
         # https://quantumcomputing.stackexchange.com/a/5192/16056 # The Algorithmic Method
@@ -447,7 +443,14 @@ class QuRegister:
         args[control] = (control, '|1><1|')
         args[flip] = (flip, flip_gate) if not 'phi' in flip_gate else (flip, flip_gate, phi)
         sigma_gate_1 = self.multi_gate_sigma(*args)
-        return sigma_gate_0 + sigma_gate_1
+        state = self.state()
+        cnot_applied = (sigma_gate_0 + sigma_gate_1) @ state
+        if to_self:
+            self.set(cnot_applied)
+            return
+        aux = QuRegister(self.nr_qubits)
+        aux.set(cnot_applied)
+        return aux
     def CNOT_gate(self, control, flip, to_self=True):
         """Inform control and flip qubits indices (in this order)"""
         return self.CU_gate('X', control, flip, to_self)
@@ -555,15 +558,8 @@ class QuRegister:
         aux.set(res)
         return aux
     def entanglement(self, qba_idx, qbb_idx, to_self=True):
-        """
-        input :: Bell state;
-        |00❭  :: |Φ+❭;
-        |01❭  :: |Ψ+❭;
-        |10❭  :: |Φ-❭;
-        |11❭  :: |Ψ-❭
-        """
+        """Bell state |Φ+❭"""
         sigma = self.multi_gate_sigma((qba_idx, 'H'))
-        # sigma = self.CNOT_gate(qba_idx, qbb_idx) @ sigma
         if to_self:
             self.set(sigma @ self.state())
             self.CNOT_gate(qba_idx, qbb_idx, to_self=True)
@@ -582,7 +578,7 @@ if __name__ == '__main__':
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
-            qs.mqg.CNOT_gate(1, 0)
+            qs.CNOT_gate(1, 0)
             print(i, j)
             print(qs.state())
     print('***')
@@ -590,7 +586,7 @@ if __name__ == '__main__':
     for i in range(2):
         for j in range(2):
             qs.init_from_qubits(i, j)
-            qs.mqg.CNOTrev_gate(0, 1)
+            qs.CNOTrev_gate(0, 1)
             print(i, j)
             print(qs.state())
     print('***')
@@ -599,13 +595,12 @@ if __name__ == '__main__':
         for j in range(2):
             for k in range(2):
                 qs.init_from_qubits(i, j, k)
-                qs.mqg.CSWAP_gate(0, 1, 2)
+                qs.CSWAP_gate(0, 1, 2)
                 print(i, j, k)
                 print(qs.state())
     print('***')
     qs = QuRegister(3)
-    qs.init_from_qubits(0,0,0)
-    qs.set(qs.mqg.entanglement(1, 2) @ qs.state())
+    qs.entanglement(0, 2)
     print(qs.state())
     qs.simulate(10000)
 
