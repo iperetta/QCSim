@@ -130,4 +130,4 @@ dmypy.json
 
 tempCodeRunnerFile.py
 tst_*.py
-*_bkp.py
+*.bkp
