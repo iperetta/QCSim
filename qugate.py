@@ -3,6 +3,12 @@ import numpy as np
 
 class QuGates:
     TOL = 2*np.finfo(float).eps
+    @classmethod
+    def list_gates(cls):
+        gates = list(n for n in dir(QuGates) if not n.startswith('_'))
+        for n in ['clean_matrix', 'generate', 'TOL', 'list_gates']:
+            gates.remove(n)
+        return gates
     @staticmethod
     def clean_matrix(a):
         m, n = a.shape
@@ -257,11 +263,11 @@ class QuGates:
         return QuGates.clean_matrix(sigma)
 
 if __name__ == '__main__':
-    gates = list(n for n in dir(QuGates) if not n.startswith('_'))
-    for n in ['clean_matrix', 'generate', 'CU', 'TOL']:
-        gates.remove(n)
+    gates = QuGates.list_gates()
     print(gates)
-    print("Tests consider minimum number of qubits only:")
+    gates.remove('CU')
+    print("Gate CU is being tested by all gates which depend on it.")
+    print("Note that tests consider minimum number of qubits only:")
     for g in gates:
         print('=', g, '='*(30 - len(g)))
         matrix = eval(f"QuGates.{g}(np.pi/3)") if 'phi' in g else eval(f"QuGates.{g}()")
