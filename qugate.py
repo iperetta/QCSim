@@ -23,6 +23,9 @@ class QuGates:
         return a
     # Unary gates
     @staticmethod
+    def zero():
+        return np.zeros((2, 2))
+    @staticmethod
     def ket0_bra0(): 
         return np.array([[1., 0.], [0., 0.]])
     @staticmethod
@@ -84,9 +87,9 @@ class QuGates:
         ])
     # Support for n-arity gates
     @staticmethod
-    def generate(*args, nr_qubits=2):
+    def generate(*args, nr_qubits=2, default=None):
         """Args is sequence of tuples each of (qubit_idx, gate) or (qubit_idx, gate, phi)"""
-        sigma_id = QuGates.ID()
+        sigma_id = QuGates.ID() if default is None else default()
         sigmas = list(sigma_id for _ in range(nr_qubits))
         for arg in args:
             qubit_idx = arg[0]

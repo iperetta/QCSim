@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, Slider, TextBox
-from qubit import Qubit
+from qubit import QuBit
 
 # Define qubit
-q = Qubit()
-p = Qubit()
+q = QuBit()
+p = QuBit()
 
 # To plot qubits
 def plot_qubits(*args, **kwargs):
