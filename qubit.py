@@ -293,41 +293,22 @@ class QuRegister:
         """Return the statevector of the qubit"""
         return self._state
     def get_qubits(self):
-        """This is a demonstration feature only;
-        Do not try to collapse these qubits individually"""
-        # def bin_fix_bits(num, fix_bits):
-        #     b = bin(num)[2:]
-        #     nb = len(b)
-        #     return '0'*(fix_bits - nb) + b if nb <= fix_bits else b[-fix_bits:]
-        # state = self.state()
-        # qprob = dict()
-        # for i in range(2**self.nr_qubits):
-        #     qprob[bin_fix_bits(i, self.nr_qubits)] = state[i, 0]
-        # qb = []
-        # for i in range(self.nr_qubits):
-        #     qb.append({'0': 0., '1': 0.})
-        #     for k, v in qprob.items():
-        #         qb[i][k[i]] += v
-        # qubits = list()
-        # for i in range(self.nr_qubits):
-        #     qubits.append(QuBit())
-        #     qubits[i].set_probability_amplitudes(qb[i]['0'], qb[i]['1'])
-        # return qubits
+        """This is a demonstration feature only, just a guess;
+        Do not try to collapse these qubits individually;
+        Initial experiments show that the presence of
+        Bell states |Φ-❭ and |Ψ-❭ can mess with other qubits;
+        Even when not, current states and recovered state
+        from these qubits have significative differences;
+        probabilities tends to keep up when no gate is applied, though"""
         qubits = list()
         state = self.state()
-        # print(state, '---')
         for i in range(self.nr_qubits):
             t = qg.generate((i, qg.ket0_bra0), nr_qubits=self.nr_qubits) @ state
-            # print(t)
+            t += qg.generate((i, qg.ket1_bra0), nr_qubits=self.nr_qubits) @ state
             a = np.sum(t)
-            # t = qg.generate((i, qg.ket0_bra1), nr_qubits=self.nr_qubits) @ state
-            # print(t)
             t = qg.generate((i, qg.ket1_bra1), nr_qubits=self.nr_qubits) @ state
-            # print(t)
+            t += qg.generate((i, qg.ket0_bra1), nr_qubits=self.nr_qubits) @ state
             b = np.sum(t)
-            # t = qg.generate((i, qg.ket1_bra0), nr_qubits=self.nr_qubits) @ state
-            # print(t)
-            # print(i, '.) a, b:', a, b)
             qubits.append(QuBit())
             qubits[i].set_probability_amplitudes(a, b)
         return qubits
@@ -717,14 +698,15 @@ if __name__ == '__main__':
     qs = QuRegister(4)
     qs.init_from_qubits('i',0,(0.3,0.7-0.7j),1)
     qs.visualize(show=False)
-    qs.set(qg.entangle(1, 3, nr_qubits=4) @ qs.state())
+    # qs.set(qg.entangle(1, 3, nr_qubits=4) @ qs.state())
     # qs.set(qg.sqCNOT(0, 2, nr_qubits=4) @ qs.state())
     print(qs.state())
     qs.get_qubits()
-    qs.visualize()
+    print('--')
     qs.assert_state()
     print('--')
     qs.assert_probs()
+    qs.visualize()
     
     # print('***************')
     # qs.init_from_qubits(0,1,'i','+')
