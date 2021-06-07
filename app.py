@@ -80,7 +80,7 @@ def plot_qubits(*args, **kwargs):
     return ax # handler bloch sphere
 
 # To update GUI fields
-def update_fields():
+def update_fields(show=False):
     ax_txtPA['a']['widget'].set_val(f"{q.a:.3f}")
     ax_txtPA['b']['widget'].set_val(f"{q.b:.3f}")
     for k in ax_txtPA.keys():
@@ -101,9 +101,14 @@ def update_fields():
     ax_qubit_orig.set_axis_off()
     ax_gate_applied.clear()
     ax_gate_applied.set_axis_off()
+    if show:
+        plt.show()
 
 # Setup GUI
 fig = plt.figure()
+fig.canvas.mpl_disconnect(
+    fig.canvas.manager.key_press_handler_id
+) # unbind default key bindings for when evaluating expression from textbox widget
 ax = fig.add_subplot(111, projection='3d')
 plt.subplots_adjust(left=0.5)
 bloch_sphere_ax = plot_qubits(q, axis=ax)
@@ -307,5 +312,5 @@ btn_rstGraph = Button(ax_rstGraph, label='Reset View',
 btn_rstGraph.on_clicked(fn_rstGraph)
 
 # Starting app
-update_fields()
-plt.show()
+update_fields(show=True)
+# plt.show()

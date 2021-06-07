@@ -2,6 +2,7 @@ import cmath
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from numpy.lib.shape_base import tile
 
 # import qugates as qgt
 from qugate import QuGates as qg
@@ -73,7 +74,7 @@ class QuBit:
         _b = np.sqrt(abs(b)**2/_tot)
         a = _a if a >= 0 else -1*_a
         b = 0 if abs(b) < TOL else b*(_b/abs(b))
-        if a == 0 and b == 0: a = 1 # protect
+        if a == 0 and b == 0: b = 1 # protection (a sets theta to π, b would be indiferent)
         self.theta = 2*np.arccos(a)
         self.phi = np.arctan2(b.imag, b.real) #!
         self.validate()
@@ -185,8 +186,8 @@ class QuBit:
         aux = QuBit()
         aux.set_state(sigma_s @ self.state())
         return aux
-    def apply_S_cross(self, to_self=True):
-        sigma_s = qg.S_cross()
+    def apply_S_dagger(self, to_self=True):
+        sigma_s = qg.S_dagger()
         if to_self:
             self.set_state(sigma_s @ self.state())
             return
@@ -201,8 +202,8 @@ class QuBit:
         aux = QuBit()
         aux.set_state(sigma_t @ self.state())
         return aux
-    def apply_T_cross(self, to_self=True):
-        sigma_t = qg.T_cross()
+    def apply_T_dagger(self, to_self=True):
+        sigma_t = qg.T_dagger()
         if to_self:
             self.set_state(sigma_t @ self.state())
             return
@@ -289,6 +290,37 @@ class QuRegister:
             if collection[-1].shape[0] == 2:
                 break
         return collection
+    def validate(self):
+        state = self.state()
+        if state.shape[1] != 1:
+            raise Exception(f"Not a column vector: {state.shape}")
+        a = state[0, 0]
+        if abs(a.imag) < TOL: 
+            state[0, 0] = a.real
+        elif abs(a.imag) >= TOL: # ensure a \in R
+            r1, phi1 = abs(a), cmath.phase(a)
+            new_state = np.zeros(state.shape, dtype=state.dtype)
+            new_state[0, 0] = r1
+            for i in range(1, new_state.shape[0]):
+                r2, phi2 = abs(state[i, 0]), cmath.phase(state[i, 0])
+                new_state[i, 0] = r2*np.exp(1j*(phi2-phi1))
+            _tot = np.sum(abs(new_state)**2)
+            if _tot == 0: 
+                _tot = 1
+            new_state[:, 0] = np.sqrt(abs(new_state[:, 0])**2/_tot)
+            state[0, 0] = new_state[0, 0] if state[0, 0] >= 0 else -1*new_state[0, 0]
+            for i in range(1, new_state.shape[0]):
+                if abs(new_state[i, 0]) < TOL:
+                    state[i, 0] = 0.  
+                else: 
+                    state[i, 0] = state[i, 0]*(new_state[i, 0]/abs(state[i, 0]))
+                if abs(state[i, 0].real) < TOL:
+                    state[i, 0] -= state[i, 0].real
+                if abs(state[i, 0].imag) < TOL:
+                    state[i, 0] = state[i, 0].real
+            if np.sum(abs(state)) < TOL: # protection (a sets theta to π, b would be indiferent)
+                raise Exception(f"Please review state vector, all zeros found: {state}")
+        self._state = state
     def state(self):
         """Return the statevector of the qubit"""
         return self._state
@@ -303,20 +335,22 @@ class QuRegister:
         qubits = list()
         state = self.state()
         for i in range(self.nr_qubits):
-            t = qg.generate((i, qg.ket0_bra0), nr_qubits=self.nr_qubits) @ state
-            t += qg.generate((i, qg.ket1_bra0), nr_qubits=self.nr_qubits) @ state
-            a = np.sum(t)
-            t = qg.generate((i, qg.ket1_bra1), nr_qubits=self.nr_qubits) @ state
-            t += qg.generate((i, qg.ket0_bra1), nr_qubits=self.nr_qubits) @ state
-            b = np.sum(t)
+            t = qg.generate((i, qg.ket0_bra0), nr_qubits=self.nr_qubits) #@ state
+            t = t + qg.generate((i, qg.ket1_bra0), nr_qubits=self.nr_qubits) #@ state
+            t = t @ state
+            a = np.sum(t)/(1 if np.sum(t) == 0. else sum(1 for l in t[:, 0].tolist() if abs(l) >= TOL))
+            t = qg.generate((i, qg.ket1_bra1), nr_qubits=self.nr_qubits) #@ state
+            t = t + qg.generate((i, qg.ket0_bra1), nr_qubits=self.nr_qubits) #@ state
+            t = t @ state
+            b = np.sum(t)/(1 if np.sum(t) == 0. else sum(1 for l in t[:, 0].tolist() if abs(l) >= TOL))
             qubits.append(QuBit())
             qubits[i].set_probability_amplitudes(a, b)
         return qubits
     def bin(self, num):
         b = bin(num)[2:]
         lb = len(b)
-        return "0"*(self.nr_qubits - lb) + b \
-            if lb <= self.nr_qubits else b[-self.nr_qubits:]
+        return ("0"*(self.nr_qubits - lb) + b \
+            if lb <= self.nr_qubits else b[-self.nr_qubits:])[::-1]
     def probabilities(self):
         return np.abs(self.state())**2
     def assert_state(self):
@@ -324,18 +358,21 @@ class QuRegister:
         stt = qubits[0].state()
         for q in qubits[1:]:
             stt = np.kron(stt, q.state())
-        state = self.state()
-        for i in range(stt.shape[0]):
-            if abs(stt[i, 0]) < TOL:
-                stt[i, 0] = 0.
-            if abs(stt[i, 0].real) < TOL:
-                stt[i, 0] -= stt[i, 0].real
-            if abs(stt[i, 0].imag) < TOL:
-                stt[i, 0] = stt[i, 0].real
-            if abs(stt[i, 0] - state[i, 0]) < TOL:
+        aux = QuRegister(self.nr_qubits)
+        aux.set(stt)
+        state_self = self.state()
+        state_aux = aux.state()
+        for i in range(state_aux.shape[0]):
+            if abs(state_aux[i, 0]) < TOL:
+                state_aux[i, 0] = 0.
+            if abs(state_aux[i, 0].real) < TOL:
+                state_aux[i, 0] -= state_aux[i, 0].real
+            if abs(state_aux[i, 0].imag) < TOL:
+                state_aux[i, 0] = state_aux[i, 0].real
+            if abs(state_aux[i, 0] - state_self[i, 0]) < TOL:
                 print(f'* {i:03d}.) ok')
             else:
-                print(f'* {i:03d}.)', stt[i, 0], state[i, 0], '!!!')
+                print(f'* {i:03d}.)', stt[i, 0], state_self[i, 0], '!!!')
     def assert_probs(self):
         qubits = self.get_qubits()
         stt = qubits[0].state()
@@ -361,15 +398,18 @@ class QuRegister:
             t += f"{self.bin(i)}| {100*abs(self[i])**2:.1f}%\n"
         return t
     def set(self, s):
-        for i in range(s.shape[0]):
-            if abs(s[i, 0]) < TOL:
-                s[i, 0] = 0
-            if abs(s[i, 0].real) < TOL:
-                s[i, 0] -= s[i, 0].real
-            if abs(s[i, 0].imag) < TOL:
-                s[i, 0] = s[i, 0].real
+        # for i in range(s.shape[0]):
+        #     if abs(s[i, 0]) < TOL:
+        #         s[i, 0] = 0
+        #     if abs(s[i, 0].real) < TOL:
+        #         s[i, 0] -= s[i, 0].real
+        #     if abs(s[i, 0].imag) < TOL:
+        #         s[i, 0] = s[i, 0].real
         # s /= np.sum(abs(s)**2)
+        # if s.shape[1] != 1:
+        #     raise Exception("Not a column vector")
         self._state = s
+        self.validate()
     def init_from_qubits(self, *args):
         if len(args) == self.nr_qubits:
             qubits = list(QuBit() for _ in range(self.nr_qubits))
@@ -382,6 +422,7 @@ class QuRegister:
             for q in qubits[1:]:
                 s = np.kron(s, q.state())
             self._state = s
+            self.validate()
         else:
             raise Exception(f"Expecting {self.nr_qubits} qubits, not {len(args)} as informed")
     def measure(self):
@@ -416,10 +457,11 @@ class QuRegister:
         for i in range(times):
             measurements.append(self.measure())
         h = self.histogram(measurements, 
-            list(self.bin(s) for s in range(2**self.nr_qubits)), 
+            sorted(list(self.bin(s) for s in range(2**self.nr_qubits))), 
             plot, perc)
         return h
-    def visualize(self, show=True):
+    def visualize(self, show=True, title=''):
+        print(self.state())
         u = np.linspace(0, 2*np.pi, 21)
         v = np.linspace(0, np.pi, 11)
         x = 1 * np.outer(np.cos(u), np.sin(v))
@@ -428,7 +470,7 @@ class QuRegister:
         nrows = int(np.ceil(np.sqrt(self.nr_qubits)))
         ncols = int(np.ceil(self.nr_qubits/nrows))
         qubits = self.get_qubits()
-        fig, axs = plt.subplots(ncols, nrows, subplot_kw={'projection':'3d'})
+        fig, axs = plt.subplots(ncols, nrows, subplot_kw={'projection':'3d', 'title':''})
         for i in range(ncols):
             for j in range(nrows):
                 idx = i*nrows + j
@@ -455,6 +497,7 @@ class QuRegister:
                     axs[i][j].quiver(0, 0, 0, q.x, q.y, q.z, color='r', linewidth=2)
                     axs[i][j].legend(title_fontsize=14, title="$\\bf{"+f"q_{idx}"+"}$", handles=[])
                 axs[i][j]._axis3don = False
+        fig.suptitle(title)
         if show:
             plt.show()
 
@@ -696,17 +739,27 @@ if __name__ == '__main__':
     #             print(qs.state())
     print('***')
     qs = QuRegister(4)
-    qs.init_from_qubits('i',0,(0.3,0.7-0.7j),1)
-    qs.visualize(show=False)
-    # qs.set(qg.entangle(1, 3, nr_qubits=4) @ qs.state())
-    # qs.set(qg.sqCNOT(0, 2, nr_qubits=4) @ qs.state())
-    print(qs.state())
-    qs.get_qubits()
-    print('--')
-    qs.assert_state()
-    print('--')
-    qs.assert_probs()
-    qs.visualize()
+    # qs.init_from_qubits('i',0,(0.383,0.653-0.653j),1)
+    print(qs.state().shape)
+    qs.set(qg.generate((0, qg.H), (2, qg.Ry_phi, 3/4*np.pi), (3, qg.X), nr_qubits=4) @ qs.state())
+    qs.set(qg.generate((0, qg.S), (2, qg.T_dagger), nr_qubits=4) @ qs.state())
+    qs.visualize(show=False, title='1. Setting')
+    # print((qg.entangle(1, 3, nr_qubits=4)@ qs.state()).shape)
+    qs.set(qg.entangle(1, 3, nr_qubits=4) @ qs.state())
+    qs.visualize(show=False, title='2. Entangle 1-3')
+    qs.set(qg.CNOT(0, 2, nr_qubits=4) @ qs.state())
+    qs.visualize(show=False, title='3. CNOT 0-2')
+    # # qs.set(qg.generate((0, qg.H), (1, qg.H), (2, qg.H), (3, qg.H), nr_qubits=4) @ qs.state())
+    qs.set(qg.generate(nr_qubits=4, default=qg.H) @ qs.state())
+    qs.visualize(show=False, title='4. H applied all')
+    # print(qs.state())
+    # qs.get_qubits()
+    # print('--')
+    # qs.assert_state()
+    # print('--')
+    # qs.assert_probs()
+    qs.simulate(10000)
+    # qs.visualize()
     
     # print('***************')
     # qs.init_from_qubits(0,1,'i','+')
