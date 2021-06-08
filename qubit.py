@@ -10,6 +10,18 @@ from qugate import QuGates as qg
 TOL = 2*np.finfo(float).eps
 
 class QuBit:
+    @staticmethod
+    def clean_matrix(a):
+        m, n = a.shape
+        for i in range(m):
+            for j in range(n):
+                if abs(a[i, j]) < TOL:
+                    a[i, j] = 0.
+                if abs(a[i, j].real) < TOL:
+                    a[i, j] -= a[i, j].real # discard real part
+                if abs(a[i, j].imag) < TOL:
+                    a[i, j] = a[i, j].real  # keep real part only
+        return a
     KET_0 = np.array([[1.], [0.]])
     KET_1 = np.array([[0.], [1.]])
     def __init__(self):
@@ -108,6 +120,8 @@ class QuBit:
         return self.a*QuBit.KET_0 + self.b*QuBit.KET_1
     def state(self):
         return np.array([[self.a], [self.b]])
+    def density_matrix(self):
+        return QuBit.clean_matrix(self.state() @ np.transpose(np.conjugate(self.state())))
     def vector(self):
         return np.array([[self.x], [self.y], [self.z]])
     def probability(self, ket):
@@ -324,6 +338,61 @@ class QuRegister:
     def state(self):
         """Return the statevector of the qubit"""
         return self._state
+    def state_ket(self):
+        return self.state()
+    def state_bra(self):
+        return np.transpose(np.conjugate(self.state()))
+    def density_matrix(self):
+        rho = self.state_ket() @ self.state_bra()
+        rnk_rho = np.linalg.matrix_rank(rho)
+        if abs(rnk_rho - 1) < TOL:
+            print("Pure state")
+        elif rnk_rho > 1:
+            print("Mixed state")
+        else:
+            print("Unknow state")
+        return QuBit.clean_matrix(rho)
+    # def partial_trace(self, keep, optimize=False):
+    #     # https://scicomp.stackexchange.com/questions/30052/calculate-partial-trace-of-an-outer-product-in-python
+    #     keep = np.asarray(keep)
+    #     dims = np.asarray(list(2 for _ in range(self.nr_qubits)))
+    #     ndim = dims.size
+    #     nkeep = np.prod(dims[keep])
+    #     idx1 = [i for i in range(ndim)]
+    #     idx2 = [ndim+i if i in keep else i for i in range(ndim)]
+    #     rho_a = self.density_matrix().reshape(np.tile(dims,2))
+    #     rho_a = np.einsum(rho_a, idx1+idx2, optimize=optimize)
+    #     return rho_a.reshape(nkeep, nkeep)
+    def partial_trace(self, qubit_2_keep):
+        # https://gist.github.com/neversakura/d6a60b4bb2990d252e9e89e5629d5553
+        """ Calculate the partial trace for qubit system
+        Parameters
+        ----------
+        rho: np.ndarray
+            Density matrix
+        qubit_2_keep: list
+            Index of qubit to be kept after taking the trace
+        Returns
+        -------
+        rho_res: np.ndarray
+            Density matrix after taking partial trace
+        """
+        rho = self.density_matrix()
+        num_qubit = self.nr_qubits
+        if type(qubit_2_keep) == int:
+            qubit_2_keep = [qubit_2_keep]
+        qubit_axis = [(i, num_qubit + i) for i in range(num_qubit)
+                    if i not in qubit_2_keep]
+        minus_factor = [(i, 2 * i) for i in range(len(qubit_axis))]
+        minus_qubit_axis = [(q[0] - m[0], q[1] - m[1])
+                            for q, m in zip(qubit_axis, minus_factor)]
+        rho_res = np.reshape(rho, [2, 2] * num_qubit)
+        qubit_left = num_qubit - len(qubit_axis)
+        for i, j in minus_qubit_axis:
+            rho_res = np.trace(rho_res, axis1=i, axis2=j)
+        if qubit_left > 1:
+            rho_res = np.reshape(rho_res, [2 ** qubit_left] * 2)
+        return rho_res
     def get_qubits(self):
         """This is a demonstration feature only, just a guess;
         Do not try to collapse these qubits individually;
@@ -741,17 +810,22 @@ if __name__ == '__main__':
     qs = QuRegister(4)
     # qs.init_from_qubits('i',0,(0.383,0.653-0.653j),1)
     print(qs.state().shape)
-    qs.set(qg.generate((0, qg.H), (2, qg.Ry_phi, 3/4*np.pi), (3, qg.X), nr_qubits=4) @ qs.state())
+    qs.set(qg.generate((0, qg.H), (1, qg.X), (2, qg.Ry_phi, 3/4*np.pi), (3, qg.X), nr_qubits=4) @ qs.state())
+    # print(qs.density_matrix())
     qs.set(qg.generate((0, qg.S), (2, qg.T_dagger), nr_qubits=4) @ qs.state())
-    qs.visualize(show=False, title='1. Setting')
-    # print((qg.entangle(1, 3, nr_qubits=4)@ qs.state()).shape)
+    # qs.visualize(show=False, title='1. Setting')
+    # # print((qg.entangle(1, 3, nr_qubits=4)@ qs.state()).shape)
     qs.set(qg.entangle(1, 3, nr_qubits=4) @ qs.state())
-    qs.visualize(show=False, title='2. Entangle 1-3')
+    # qs.visualize(show=False, title='2. Entangle 1-3')
     qs.set(qg.CNOT(0, 2, nr_qubits=4) @ qs.state())
-    qs.visualize(show=False, title='3. CNOT 0-2')
-    # # qs.set(qg.generate((0, qg.H), (1, qg.H), (2, qg.H), (3, qg.H), nr_qubits=4) @ qs.state())
-    qs.set(qg.generate(nr_qubits=4, default=qg.H) @ qs.state())
-    qs.visualize(show=False, title='4. H applied all')
+    # qs.visualize(show=False, title='3. CNOT 0-2')
+    # # # qs.set(qg.generate((0, qg.H), (1, qg.H), (2, qg.H), (3, qg.H), nr_qubits=4) @ qs.state())
+    # # qs.set(qg.generate(nr_qubits=4, default=qg.H) @ qs.state())
+    # qs.visualize(show=False, title='4. H applied all')
+    print(qs.density_matrix())
+    for i in range(qs.nr_qubits):
+        print(i, '====')
+        print(qs.partial_trace(i))
     # print(qs.state())
     # qs.get_qubits()
     # print('--')

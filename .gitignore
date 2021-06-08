@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 tempCodeRunnerFile.py
-tst_*.py
+tst_*.*
 *.bkp
 *.png

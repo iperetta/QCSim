@@ -77,6 +77,10 @@ def plot_qubits(*args, **kwargs):
         ax.text(*repel_from_center(arg.x, arg.y, arg.z), label, 'x', \
             horizontalalignment='center', fontweight='bold', color=color)
     plt.title(title)
+    print('|ψ❭ density matrix')
+    print(q.density_matrix())
+    print('𝓖|ψ❭ density matrix')
+    print(p.density_matrix())
     return ax # handler bloch sphere
 
 # To update GUI fields
