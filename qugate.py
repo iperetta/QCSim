@@ -4,11 +4,18 @@ import numpy as np
 class QuGates:
     TOL = 2*np.finfo(float).eps
     @classmethod
-    def list_gates(cls):
+    def list_gates(cls, arity=None):
         gates = list(n for n in dir(QuGates) if not n.startswith('_'))
-        for n in ['clean_matrix', 'generate', 'TOL', 'list_gates']:
+        for n in ['clean_matrix', 'generate', 'TOL', 'list_gates', 'argcounts']:
             gates.remove(n)
-        return gates
+        if arity is None:
+            return gates
+        elif arity == 1:
+            return list(g for g in gates if not ('C' in g or 'SWAP' in g or 'entagle' in g))
+        return list(g for g in gates if g.endswith('n'))
+    @staticmethod
+    def argcounts():
+        return dict((g, eval(f"QuGates.{g}.__code__.co_argcount")) for g in QuGates.list_gates())
     @staticmethod
     def clean_matrix(a):
         m, n = a.shape
@@ -264,10 +271,15 @@ class QuGates:
             qb_idx_a, qb_idx_b, nr_qubits=nr_qubits
         ) @ sigma
         return QuGates.clean_matrix(sigma)
+    # @staticmethod
+    # def measure(statevector, qb_id=None, nr_qubits=1):
+    #     probs = np.abs(statevector)**2
+
 
 if __name__ == '__main__':
     gates = QuGates.list_gates()
     print(gates)
+    print(QuGates.argcounts())
     gates.remove('CU')
     print("Gate CU is being tested by all gates which depend on it.")
     print("Note that tests consider minimum number of qubits only:")

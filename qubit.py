@@ -272,6 +272,9 @@ def ndim_nested_loop(dimension, min_count=0, max_count=9):
     return iterations
 
 class QuRegister:
+    available_gates = qg.argcounts()
+    unary_gates = list(k for k, v in available_gates.items() if v <= 1)
+    narity_gates = list(k for k, v in available_gates.items() if v > 1)
     def __init__(self, nr_qubits):
         if nr_qubits < 2:
             raise Exception("Consider using class Qubit for this")
@@ -464,7 +467,7 @@ class QuRegister:
         t = "st" + " "*(self.nr_qubits - 2) + "| Prob\n"
         t += "--" + "-"*self.nr_qubits + "------\n"
         for i in range(2**self.nr_qubits):
-            t += f"{self.bin(i)}| {100*abs(self[i])**2:.1f}%\n"
+            t += f"{self.bin(i)[::-1]}| {100*abs(self[i])**2:.1f}%\n"
         return t
     def set(self, s):
         # for i in range(s.shape[0]):
@@ -569,213 +572,21 @@ class QuRegister:
         fig.suptitle(title)
         if show:
             plt.show()
-
-    # def gate_to_apply(self, gate, qubit_idx,  phi=None, to_self=True):
-    #     sigma_gate = qgt.multi_gate_sigma(self.nr_qubits, (qubit_idx, gate, phi))
-    #     if to_self:
-    #         self.set(sigma_gate @ self.state())
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(sigma_gate @ self.state())
-    #     return aux
-    # def gates_to_apply(self, *args, to_self=True):
-    #     sigma_gate = qgt.multi_gate_sigma(self.nr_qubits, *args)
-    #     if to_self:
-    #         self.set(sigma_gate @ self.state())
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(sigma_gate @ self.state())
-    #     return aux
-    # def multi_gate_sigma(self, *args):
-    #     """Args is sequence of tuples each of (qubit_idx, gate) or (qubit_idx, gate, phi)"""
-    #     sigma_id = qgt.QUGATES['ID']
-    #     sigmas = list(sigma_id for _ in range(self.nr_qubits))
-    #     for arg in args:
-    #         qubit_idx = arg[0]
-    #         gate = arg[1]
-    #         phi = None if len(arg) == 2 else arg[2]
-    #         if 'phi' in gate and phi is None:
-    #             raise Exception(f"Gate {gate} needs 'phi' parameter")
-    #         sigmas[qubit_idx] = qgt.QUGATES[gate]
-    #     qgates = sigmas[0]
-    #     for i in range(1, self.nr_qubits):
-    #         qgates = np.kron(qgates, sigmas[i])
-    #     return qgates
-    # # def _Hn_unit(self, n):
-    # #     if n == 1:
-    # #         return np.array([[1., 1.], [1., -1.]])
-    # #     previous = self._Hn_unit(n - 1)
-    # #     return np.block([[previous, previous], [previous, -1*previous]])
-    # # def Hn_gate_alt(self, to_self=True):
-    # #     args = list((i, 'H') for i in range(self.nr_qubits))
-    # #     sigma_gate = (1/np.sqrt(2**self.nr_qubits))*self._Hn_unit(self.nr_qubits)
-    # #     if to_self:
-    # #         self.set(sigma_gate @ self.state())
-    # #         return
-    # #     aux = MultiQubits(self.nr_qubits)
-    # #     aux.set(sigma_gate @ self.state())
-    # #     return aux
-    # def Hn_gate(self):
-    #     args = list((i, 'H') for i in range(self.nr_qubits))
-    #     return self.multi_gate_sigma(*args)
-    # def SWAP_gate(self, qba_idx, qbb_idx):
-    #     # https://quantumcomputing.stackexchange.com/a/5192/16056 # The Algorithmic Method
-    #     # https://quantumcomputing.stackexchange.com/a/9182/16056 
-    #     if qba_idx == qbb_idx:
-    #         raise Exception("Review SWAP for same qubit")
-    #     args = list((i, 'ID') for i in range(self.nr_qubits))
-    #     args[qba_idx] = (qba_idx, '|0><0|')
-    #     args[qbb_idx] = (qbb_idx, '|0><0|')
-    #     sigma_gate_00 = self.multi_gate_sigma(*args)
-    #     args[qba_idx] = (qba_idx, '|0><1|')
-    #     args[qbb_idx] = (qbb_idx, '|1><0|')
-    #     sigma_gate_01 = self.multi_gate_sigma(*args)
-    #     args[qba_idx] = (qba_idx, '|1><0|')
-    #     args[qbb_idx] = (qbb_idx, '|0><1|')
-    #     sigma_gate_10 = self.multi_gate_sigma(*args)
-    #     args[qba_idx] = (qba_idx, '|1><1|')
-    #     args[qbb_idx] = (qbb_idx, '|1><1|')
-    #     sigma_gate_11 = self.multi_gate_sigma(*args)
-    #     return (sigma_gate_00 + sigma_gate_01 + sigma_gate_10 + sigma_gate_11) 
-    # def CU_gate(self, flip_gate, control, flip, to_self=True, phi=None):
-    #     # https://quantumcomputing.stackexchange.com/questions/5409/composing-the-cnot-gate-as-a-tensor-product-of-two-level-matrices
-    #     # https://quantumcomputing.stackexchange.com/a/5192/16056 # The Algorithmic Method
-    #     if control == flip:
-    #         raise Exception("Qubit cannot be controled by itself")
-    #     args = list((i, 'ID') for i in range(self.nr_qubits))
-    #     args[control] = (control, '|0><0|')
-    #     args[flip] = (flip, 'ID')
-    #     sigma_gate_0 = self.multi_gate_sigma(*args)
-    #     args[control] = (control, '|1><1|')
-    #     args[flip] = (flip, flip_gate) if not 'phi' in flip_gate else (flip, flip_gate, phi)
-    #     sigma_gate_1 = self.multi_gate_sigma(*args)
-    #     return sigma_gate_0 + sigma_gate_1
-    # def CNOT_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('X', control, flip, to_self)
-    # def CNOTrev_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     if to_self:
-    #         self.gates_to_apply((control, 'H'), (flip, 'H'))
-    #         self.CNOT_gate(control, flip)
-    #         self.gates_to_apply((control, 'H'), (flip, 'H'))
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(self.state())
-    #     aux.gates_to_apply((control, 'H'), (flip, 'H'))
-    #     aux.CNOT_gate(flip, control)
-    #     aux.gates_to_apply((control, 'H'), (flip, 'H'))
-    #     return aux
-    # def CX_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('X', control, flip, to_self)
-    # def CY_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('Y', control, flip, to_self)
-    # def CZ_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('Z', control, flip, to_self)
-    # def CsqNOT_gate(self, control, flip, to_self=True):
-    #     """Inform control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('sqNOT', control, flip, to_self)
-    # def CRx_phi_gate(self, phi, control, flip, to_self=True):
-    #     """Inform phi angle and both control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('Rx_phi', control, flip, to_self, phi)
-    # def CRy_phi_gate(self, phi, control, flip, to_self=True):
-    #     """Inform phi angle and both control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('Ry_phi', control, flip, to_self, phi)
-    # def CRz_phi_gate(self, phi, control, flip, to_self=True):
-    #     """Inform phi angle and both control and flip qubits indices (in this order)"""
-    #     return self.CU_gate('Rz_phi', control, flip, to_self, phi)
-    # def CCNOT_gate(self, ctrl1, ctrl2, flip, to_self=True):
-    #     """Also known as Toffoli gate"""
-    #     if ctrl1 == flip or ctrl2 == flip:
-    #         raise Exception("Qubit cannot be controled by itself")
-    #     if ctrl1 == ctrl2:
-    #         raise Exception("Consider using CNOT gate")
-    #     args = list((i, 'ID') for i in range(self.nr_qubits))
-    #     #cases not for action
-    #     args[ctrl1] = (ctrl1, '|0><0|')
-    #     args[ctrl2] = (ctrl2, '|0><0|')
-    #     args[flip] = (flip, 'ID')
-    #     sigma_gate_00 = self.multi_gate_sigma(*args)
-    #     args[ctrl1] = (ctrl1, '|0><0|')
-    #     args[ctrl2] = (ctrl2, '|1><1|')
-    #     args[flip] = (flip, 'ID')
-    #     sigma_gate_01 = self.multi_gate_sigma(*args)
-    #     args[ctrl1] = (ctrl1, '|1><1|')
-    #     args[ctrl2] = (ctrl2, '|0><0|')
-    #     args[flip] = (flip, 'ID')
-    #     sigma_gate_10 = self.multi_gate_sigma(*args)
-    #     #case for action
-    #     args[ctrl1] = (ctrl1, '|1><1|')
-    #     args[ctrl2] = (ctrl2, '|1><1|')
-    #     args[flip] = (flip, 'X')
-    #     sigma_gate_11 = self.multi_gate_sigma(*args)
-    #     state = self.state()
-    #     ccnot_applied = (sigma_gate_00 + sigma_gate_01 + \
-    #         sigma_gate_10 + sigma_gate_11) @ state
-    #     if to_self:
-    #         self.set(ccnot_applied)
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(ccnot_applied)
-    #     return aux
-    # def CSWAP_gate(self, control, qba_idx, qbb_idx, to_self=True):
-    #     """Also known as Fredkin gate"""
-    #     state = self.state()
-    #     if control == qba_idx or control == qbb_idx:
-    #         raise Exception("Qubit cannot be controled by itself")
-    #     if qba_idx == qbb_idx:
-    #         raise Exception("Nothing to control here")
-    #     args = list((i, 'ID') for i in range(self.nr_qubits))
-    #     args[control] = (control, '|0><0|')
-    #     sigma_gate_c0_XX = self.multi_gate_sigma(*args)
-    #     args[control] = (control, '|1><1|')
-    #     args[qba_idx] = (qba_idx, '|0><0|')
-    #     args[qbb_idx] = (qbb_idx, '|0><0|')
-    #     sigma_gate_c1_00 = self.multi_gate_sigma(*args)
-    #     args[control] = (control, '|1><1|')
-    #     args[qba_idx] = (qba_idx, '|0><1|')
-    #     args[qbb_idx] = (qbb_idx, '|1><0|')
-    #     sigma_gate_c1_01 = self.multi_gate_sigma(*args)
-    #     args[control] = (control, '|1><1|')
-    #     args[qba_idx] = (qba_idx, '|1><0|')
-    #     args[qbb_idx] = (qbb_idx, '|0><1|')
-    #     sigma_gate_c1_10 = self.multi_gate_sigma(*args)
-    #     args[control] = (control, '|1><1|')
-    #     args[qba_idx] = (qba_idx, '|1><1|')
-    #     args[qbb_idx] = (qbb_idx, '|1><1|')
-    #     sigma_gate_c1_11 = self.multi_gate_sigma(*args)
-    #     res = (sigma_gate_c0_XX +  \
-    #         sigma_gate_c1_00 + sigma_gate_c1_01 + \
-    #         sigma_gate_c1_10 + sigma_gate_c1_11) @ state
-    #     if to_self:
-    #         self.set(res)
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(res)
-    #     return aux
-    # def entanglement(self, qba_idx, qbb_idx, to_self=True):
-    #     """
-    #     input :: Bell state;
-    #     |00❭  :: |Φ+❭;
-    #     |01❭  :: |Ψ+❭;
-    #     |10❭  :: |Φ-❭;
-    #     |11❭  :: |Ψ-❭
-    #     """
-    #     sigma = self.multi_gate_sigma((qba_idx, 'H'))
-    #     # sigma = self.CNOT_gate(qba_idx, qbb_idx) @ sigma
-    #     if to_self:
-    #         self.set(sigma @ self.state())
-    #         self.CNOT_gate(qba_idx, qbb_idx, to_self=True)
-    #         return
-    #     aux = QuRegister(self.nr_qubits)
-    #     aux.set(sigma @ self.state())
-    #     return aux.CNOT_gate(qba_idx, qbb_idx, to_self=False)
-
-    
-
+    def apply(self, *args):
+        uargs = list()
+        for arg in args:
+            if arg[0].__name__ in QuRegister.unary_gates:
+                if 'phi' in arg[0].__name__:
+                    uargs.append((arg[2], arg[0], arg[1]))
+                else:
+                    uargs.append((arg[1], arg[0]))
+        if uargs:
+            self.set(qg.generate(*uargs, nr_qubits=self.nr_qubits) @ self.state())
+        for arg in args:
+            if arg[0].__name__ in QuRegister.narity_gates:
+                gate = f"qg.{arg[0].__name__}(*{arg[1:]}, nr_qubits=self.nr_qubits)"
+                circuit = eval(gate)
+                self.set(circuit @ self.state())
     
 
 
@@ -834,6 +645,12 @@ if __name__ == '__main__':
     # qs.assert_probs()
     qs.simulate(10000)
     # qs.visualize()
+    print('***')
+    qr = QuRegister(4)
+    qr.apply((qg.H, 0), (qg.X, 1), (qg.Ry_phi, 3/4*np.pi, 2), (qg.X, 3))
+    qr.apply((qg.T_dagger, 2), (qg.entangle, 1, 3), (qg.S, 0))
+    qr.apply((qg.CNOT, 0, 2))
+    qr.simulate(10000)
     
     # print('***************')
     # qs.init_from_qubits(0,1,'i','+')
