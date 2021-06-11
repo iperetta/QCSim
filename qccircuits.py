@@ -9,6 +9,7 @@ for j in range(2):
             qr.apply((qg.X, 0))
         if j == 1:
             qr.apply((qg.X, 1))
+        qr.table_prob(msb_to_lsb=True)
         qr.visualize(show=False)
         qr.simulate(10000, title=f"|{i}{j}❭")
 
