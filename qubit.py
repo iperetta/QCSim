@@ -75,7 +75,7 @@ class QuBit:
         self.validate()
     def set_probability_amplitudes(self, a, b):
         if abs(a.imag) < TOL: a = a.real # protect
-        elif abs(a.imag) > 0: # ensure a \in R
+        elif abs(a.imag) > TOL: # ensure a \in R
             r1, phi1 = abs(a), cmath.phase(a)
             r2, phi2 = abs(b), cmath.phase(b)
             a = r1
@@ -348,12 +348,12 @@ class QuRegister:
     def density_matrix(self):
         rho = self.state_ket() @ self.state_bra()
         rnk_rho = np.linalg.matrix_rank(rho)
-        if abs(rnk_rho - 1) < TOL:
-            print("Pure state")
-        elif rnk_rho > 1:
-            print("Mixed state")
-        else:
-            print("Unknow state")
+        # if abs(rnk_rho - 1) < TOL:
+        #     print("Pure state")
+        # elif rnk_rho > 1:
+        #     print("Mixed state")
+        # else:
+        #     print("Unknow state")
         return QuBit.clean_matrix(rho)
     # def partial_trace(self, keep, optimize=False):
     #     # https://scicomp.stackexchange.com/questions/30052/calculate-partial-trace-of-an-outer-product-in-python
@@ -395,6 +395,7 @@ class QuRegister:
             rho_res = np.trace(rho_res, axis1=i, axis2=j)
         if qubit_left > 1:
             rho_res = np.reshape(rho_res, [2 ** qubit_left] * 2)
+        print('>>', np.linalg.matrix_rank(rho_res))
         return rho_res
     def get_qubits(self):
         """This is a demonstration feature only, just a guess;
@@ -405,18 +406,10 @@ class QuRegister:
         from these qubits have significative differences;
         probabilities tends to keep up when no gate is applied, though"""
         qubits = list()
-        state = self.state()
         for i in range(self.nr_qubits):
-            t = qg.generate((i, qg.ket0_bra0), nr_qubits=self.nr_qubits) #@ state
-            t = t + qg.generate((i, qg.ket1_bra0), nr_qubits=self.nr_qubits) #@ state
-            t = t @ state
-            a = np.sum(t)/(1 if np.sum(t) == 0. else sum(1 for l in t[:, 0].tolist() if abs(l) >= TOL))
-            t = qg.generate((i, qg.ket1_bra1), nr_qubits=self.nr_qubits) #@ state
-            t = t + qg.generate((i, qg.ket0_bra1), nr_qubits=self.nr_qubits) #@ state
-            t = t @ state
-            b = np.sum(t)/(1 if np.sum(t) == 0. else sum(1 for l in t[:, 0].tolist() if abs(l) >= TOL))
+            dm_i = self.partial_trace(i)
             qubits.append(QuBit())
-            qubits[i].set_probability_amplitudes(a, b)
+            qubits[i].set_state(dm_i @ QuBit.KET_0 + dm_i @ QuBit.KET_1)
         return qubits
     def bin(self, num):
         b = bin(num)[2:]
@@ -470,16 +463,6 @@ class QuRegister:
             t += f"{self.bin(i)[::-1]}| {100*abs(self[i])**2:.1f}%\n"
         return t
     def set(self, s):
-        # for i in range(s.shape[0]):
-        #     if abs(s[i, 0]) < TOL:
-        #         s[i, 0] = 0
-        #     if abs(s[i, 0].real) < TOL:
-        #         s[i, 0] -= s[i, 0].real
-        #     if abs(s[i, 0].imag) < TOL:
-        #         s[i, 0] = s[i, 0].real
-        # s /= np.sum(abs(s)**2)
-        # if s.shape[1] != 1:
-        #     raise Exception("Not a column vector")
         self._state = s
         self.validate()
     def init_from_qubits(self, *args):
@@ -501,7 +484,7 @@ class QuRegister:
         prob = list(p[0] for p in self.probabilities().tolist())
         chosen = np.random.choice(2**self.nr_qubits, size=None, p=prob, replace=True)
         return self.bin(chosen)
-    def histogram(self, outcomes, labels, plot=True, perc=False):
+    def histogram(self, outcomes, labels, plot=True, perc=False, title=""):
         h = dict()
         bins = []
         for l in labels:
@@ -519,18 +502,18 @@ class QuRegister:
             ax.barh(labels, bins, align='center')
             ax.invert_yaxis()
             ax.grid('on')
-            plt.title("Probabilities for outcomes")
+            plt.title("Probabilities for outcomes\n"+title)
             plt.xlabel("probability")
             plt.ylabel("outcome")
             plt.show()
         return h
-    def simulate(self, times=100, plot=True, perc=True):
+    def simulate(self, times=100, plot=True, perc=True, title=''):
         measurements = []
         for i in range(times):
             measurements.append(self.measure())
         h = self.histogram(measurements, 
             sorted(list(self.bin(s) for s in range(2**self.nr_qubits))), 
-            plot, perc)
+            plot, perc, title=title)
         return h
     def visualize(self, show=True, title=''):
         print(self.state())
@@ -539,13 +522,14 @@ class QuRegister:
         x = 1 * np.outer(np.cos(u), np.sin(v))
         y = 1 * np.outer(np.sin(u), np.sin(v))
         z = 1 * np.outer(np.ones(np.size(u)), np.cos(v))
-        nrows = int(np.ceil(np.sqrt(self.nr_qubits)))
-        ncols = int(np.ceil(self.nr_qubits/nrows))
-        qubits = self.get_qubits()
-        fig, axs = plt.subplots(ncols, nrows, subplot_kw={'projection':'3d', 'title':''})
-        for i in range(ncols):
-            for j in range(nrows):
-                idx = i*nrows + j
+        ncols = int(np.ceil(np.sqrt(self.nr_qubits)))
+        nrows = int(np.ceil(self.nr_qubits/ncols))
+        qubits = list(reversed(self.get_qubits()))
+        fig, axs = plt.subplots(ncols=ncols, nrows=nrows, subplot_kw={'projection':'3d', 'title':''})
+        axs = axs.reshape((nrows, ncols)) # in case of nrows or ncols = 1
+        for i in range(nrows):
+            for j in range(ncols):
+                idx = (self.nr_qubits - 1) - (i*ncols + j)
                 if idx < self.nr_qubits:
                     axs[i][j].plot_wireframe(x, y, z, color='lightgray', linestyle=':')
                     axs[i][j].plot3D(np.cos(u), np.sin(u), np.zeros(u.shape), color='lightblue', linestyle='-.')

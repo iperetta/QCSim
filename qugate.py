@@ -259,8 +259,8 @@ class QuGates:
         input :: Bell state;
         |00❭  :: |Φ+❭;
         |01❭  :: |Ψ+❭;
-        |10❭  :: |Φ-❭;
-        |11❭  :: |Ψ-❭
+        |10❭  :: |Ψ-❭;
+        |11❭  :: |Φ-❭
         """
         if max(qb_idx_a, qb_idx_b) >= nr_qubits:
             nr_qubits = max(qb_idx_a, qb_idx_b) + 1
