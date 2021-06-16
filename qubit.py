@@ -421,7 +421,7 @@ class QuRegister:
         lb = len(b)
         bin_num = ("0"*(self.nr_qubits - lb) + b \
             if lb <= self.nr_qubits else b[-self.nr_qubits:])
-        return bin_num if msb_to_lsb else bin_num[::-1]
+        return bin_num[::-1] if msb_to_lsb else bin_num
     def probabilities(self):
         return np.abs(self.state())**2
     def assert_state(self):
@@ -470,7 +470,7 @@ class QuRegister:
                 max_char = max_len(input_labels)
             letters = list()
             for i in range(max_char):
-                letters.append(sep_char.join(list(c[i]  if i < len(c) else ' ' for c in input_labels)) + ' ' + end_char)
+                letters.append(' ' + sep_char.join(list(c[i]  if i < len(c) else ' ' for c in input_labels)) + ' ' + end_char)
             return letters
         labels = w1pl(input_labels, sep_char=sep_char, end_char=end_char)
         labels[0] += ' Prob'
@@ -479,7 +479,7 @@ class QuRegister:
         h += '\n'.join(labels) + '\n'
         h += '-' + '-'*len_labels + '\n'
         return h
-    def table_prob(self, msb_to_lsb=True, spaced=True):
+    def table_prob(self, msb_to_lsb=False, spaced=True):
         """
         msb_to_lsb parameter refers to most (less) significant bit order;
         msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
@@ -495,7 +495,7 @@ class QuRegister:
         tb = list()
         for i in range(2**self.nr_qubits):
             state = list(c for c in f"{self.qb_bin(i, msb_to_lsb=msb_to_lsb)}")
-            tb.append(sep_char.join(state) + f" | {100*abs(self[i])**2:.1f}%")
+            tb.append(' ' + sep_char.join(state) + f" | {100*abs(self[i])**2:.1f}%")
         t += '\n'.join(sorted(tb))
         return t
     def set(self, s):
@@ -516,45 +516,48 @@ class QuRegister:
             self.validate()
         else:
             raise Exception(f"Expecting {self.nr_qubits} qubits, not {len(args)} as informed")
-    def measure(self):
-        prob = list(p[0] for p in self.probabilities().tolist())
-        chosen = np.random.choice(2**self.nr_qubits, size=None, p=prob, replace=True)
-        return self.qb_bin(chosen, msb_to_lsb=False) # statevector order
-    def histogram(self, outcomes, labels, plot=True, perc=False, title=""):
-        h = dict()
-        bins = []
-        for l in labels:
-            c = outcomes.count(l)
-            h[l] = c
-            bins.append(c)
-        if perc:
-            total = len(outcomes)
-            for i, l in enumerate(labels):
-                h[l] /= total
-                bins[i] /= total
-        if plot:
-            plt.rcParams.update({'font.size': 14})
-            fig, ax = plt.subplots()
-            ax.barh(labels, bins, align='center')
-            ax.invert_yaxis()
-            ax.grid('on')
-            plt.title("Probabilities for outcomes\n"+title)
-            plt.xlabel("probability")
-            plt.ylabel("outcome")
-            plt.show()
-        return h
-    def simulate(self, times=100, plot=True, perc=True, title='', msb_to_lsb=True):
+    def measure(self, msb_to_lsb=False):
         """
         msb_to_lsb parameter refers to most (less) significant bit order;
         msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
         msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
         """
-        measurements = dict()
+        prob = list(p[0] for p in self.probabilities().tolist())
+        chosen = np.random.choice(2**self.nr_qubits, size=None, p=prob, replace=True)
+        return self.qb_bin(chosen, msb_to_lsb=msb_to_lsb) # msb_to_lsb=False : statevector order
+    def histogram(self, outcomes, labels, plot=True, perc=False, title="", msb_to_lsb=False):
+        h = dict()
+        labels = sorted(labels)
+        for l in labels:
+            c = outcomes.count(l)
+            h[l] = c
+        if perc:
+            total = len(outcomes)
+            for i, l in enumerate(labels):
+                h[l] /= total
+        if plot:
+            plt.rcParams.update({'font.size': 14})
+            fig, ax = plt.subplots()
+            ax.barh(labels, list(h[l] for l in labels), align='center')
+            ax.invert_yaxis()
+            ax.grid('on')
+            plt.title("Probabilities for outcomes\n"+title)
+            plt.xlabel("probability")
+            plt.ylabel("outcome " + ('(MSB…LSB) ' if msb_to_lsb else '(LSB…MSB) '))
+            plt.show()
+        return h
+    def simulate(self, times=100, plot=True, perc=True, title='', msb_to_lsb=False):
+        """
+        msb_to_lsb parameter refers to most (less) significant bit order;
+        msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
+        msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
+        """
+        measurements = []
         for _ in range(times):
-            measurements.append(self.measure()[::-1] if msb_to_lsb else self.measure())
+            measurements.append(self.measure(msb_to_lsb=msb_to_lsb))
         h = self.histogram(measurements, 
                 sorted(list(self.qb_bin(s, msb_to_lsb=msb_to_lsb) for s in range(2**self.nr_qubits))), 
-                plot, perc, title=('(MSB↔LSB) ' if msb_to_lsb else '(LSB↔MSB) ')+title
+                plot, perc, title=title
             )
         return h
     def visualize(self, show=True, title=''):
