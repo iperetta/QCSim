@@ -281,8 +281,25 @@ class QuRegister:
         self.nr_qubits = nr_qubits
         s = list([1.] if i == 0 else [0.] for i in range(2**nr_qubits))
         self._state = np.array(s)
+        self.msb_to_lsb = False
     def __getitem__(self, index):
         return self._state[index, 0]
+    def msb_leftmost(self):
+        """
+        Feature for visualization only;
+        Most Significant Bit (i.e. max subscripted bit) to the leftmost of register.
+        msb_to_lsb=True, number 5 (4 bits) = 0101;
+        most common computer science bit order, q4 to q0.
+        """
+        self.msb_to_lsb = True
+    def msb_rightmost(self):
+        """
+        Feature for visualization only, reset to default;
+        Most Significant Bit (i.e. max subscripted bit) to the rightmost of register.
+        msb_to_lsb=False, number 5 (4 bits) = 1010;
+        state vector bit order, q0 to q4, common to quantum computing operations.
+        """
+        self.msb_to_lsb = False
     def inverse_kron_product(self, tensor):
         """Reverse kronecker product known solution: Nearest Kronecker Product.
            Risk of swapping qubits order!!"""
@@ -348,24 +365,7 @@ class QuRegister:
     def density_matrix(self):
         rho = self.state_ket() @ self.state_bra()
         rnk_rho = np.linalg.matrix_rank(rho)
-        # if abs(rnk_rho - 1) < TOL:
-        #     print("Pure state")
-        # elif rnk_rho > 1:
-        #     print("Mixed state")
-        # else:
-        #     print("Unknow state")
         return QuBit.clean_matrix(rho)
-    # def partial_trace(self, keep, optimize=False):
-    #     # https://scicomp.stackexchange.com/questions/30052/calculate-partial-trace-of-an-outer-product-in-python
-    #     keep = np.asarray(keep)
-    #     dims = np.asarray(list(2 for _ in range(self.nr_qubits)))
-    #     ndim = dims.size
-    #     nkeep = np.prod(dims[keep])
-    #     idx1 = [i for i in range(ndim)]
-    #     idx2 = [ndim+i if i in keep else i for i in range(ndim)]
-    #     rho_a = self.density_matrix().reshape(np.tile(dims,2))
-    #     rho_a = np.einsum(rho_a, idx1+idx2, optimize=optimize)
-    #     return rho_a.reshape(nkeep, nkeep)
     def partial_trace(self, qubit_2_keep):
         # https://gist.github.com/neversakura/d6a60b4bb2990d252e9e89e5629d5553
         """ Calculate the partial trace for qubit system
@@ -395,7 +395,6 @@ class QuRegister:
             rho_res = np.trace(rho_res, axis1=i, axis2=j)
         if qubit_left > 1:
             rho_res = np.reshape(rho_res, [2 ** qubit_left] * 2)
-        print('>>', np.linalg.matrix_rank(rho_res))
         return rho_res
     def get_qubits(self):
         """This is a demonstration feature only, just a guess;
@@ -411,17 +410,12 @@ class QuRegister:
             qubits.append(QuBit())
             qubits[i].set_state(dm_i @ QuBit.KET_0 + dm_i @ QuBit.KET_1)
         return qubits
-    def qb_bin(self, num, msb_to_lsb=False):
-        """
-        msb_to_lsb parameter refers to most (less) significant bit order;
-        msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
-        msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
-        """
+    def qb_bin(self, num):
         b = bin(num)[2:]
         lb = len(b)
         bin_num = ("0"*(self.nr_qubits - lb) + b \
             if lb <= self.nr_qubits else b[-self.nr_qubits:])
-        return bin_num[::-1] if msb_to_lsb else bin_num
+        return bin_num[::-1] if self.msb_to_lsb else bin_num
     def probabilities(self):
         return np.abs(self.state())**2
     def assert_state(self):
@@ -479,14 +473,9 @@ class QuRegister:
         h += '\n'.join(labels) + '\n'
         h += '-' + '-'*len_labels + '\n'
         return h
-    def table_prob(self, msb_to_lsb=False, spaced=True):
-        """
-        msb_to_lsb parameter refers to most (less) significant bit order;
-        msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
-        msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
-        """
+    def table_prob(self, spaced=True):
         sep_char = ' ' if spaced else ''
-        if msb_to_lsb:
+        if self.msb_to_lsb:
             t = self._table_probs_header(list(f'q{i}' for i in reversed(range(self.nr_qubits))), 
                 sep_char=sep_char, end_char='|')
         else:
@@ -494,7 +483,7 @@ class QuRegister:
                 sep_char=sep_char, end_char='|')
         tb = list()
         for i in range(2**self.nr_qubits):
-            state = list(c for c in f"{self.qb_bin(i, msb_to_lsb=msb_to_lsb)}")
+            state = list(c for c in f"{self.qb_bin(i)}")
             tb.append(' ' + sep_char.join(state) + f" | {100*abs(self[i])**2:.1f}%")
         t += '\n'.join(sorted(tb))
         return t
@@ -516,16 +505,11 @@ class QuRegister:
             self.validate()
         else:
             raise Exception(f"Expecting {self.nr_qubits} qubits, not {len(args)} as informed")
-    def measure(self, msb_to_lsb=False):
-        """
-        msb_to_lsb parameter refers to most (less) significant bit order;
-        msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
-        msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
-        """
+    def measure(self):
         prob = list(p[0] for p in self.probabilities().tolist())
         chosen = np.random.choice(2**self.nr_qubits, size=None, p=prob, replace=True)
-        return self.qb_bin(chosen, msb_to_lsb=msb_to_lsb) # msb_to_lsb=False : statevector order
-    def histogram(self, outcomes, labels, plot=True, perc=False, title="", msb_to_lsb=False):
+        return self.qb_bin(chosen)
+    def histogram(self, outcomes, labels, plot=True, perc=False, title=""):
         h = dict()
         labels = sorted(labels)
         for l in labels:
@@ -543,25 +527,19 @@ class QuRegister:
             ax.grid('on')
             plt.title("Probabilities for outcomes\n"+title)
             plt.xlabel("probability")
-            plt.ylabel("outcome " + ('(MSB…LSB) ' if msb_to_lsb else '(LSB…MSB) '))
+            plt.ylabel("outcome, " + ('leftmost MSB' if self.msb_to_lsb else 'rightmost MSB'))
             plt.show()
         return h
-    def simulate(self, times=100, plot=True, perc=True, title='', msb_to_lsb=False):
-        """
-        msb_to_lsb parameter refers to most (less) significant bit order;
-        msb_to_lsb=True, number 5 (4 bits) = 0101: most common computer science bit order, q4 to q0;
-        msb_to_lsb=False, number 5 (4 bits) = 1010: state vector bit order, q0 to q4.
-        """
+    def simulate(self, times=100, plot=True, perc=True, title=''):
         measurements = []
         for _ in range(times):
-            measurements.append(self.measure(msb_to_lsb=msb_to_lsb))
+            measurements.append(self.measure())
         h = self.histogram(measurements, 
-                sorted(list(self.qb_bin(s, msb_to_lsb=msb_to_lsb) for s in range(2**self.nr_qubits))), 
+                sorted(list(self.qb_bin(s) for s in range(2**self.nr_qubits))), 
                 plot, perc, title=title
             )
         return h
     def visualize(self, show=True, title=''):
-        print(self.state())
         u = np.linspace(0, 2*np.pi, 21)
         v = np.linspace(0, np.pi, 11)
         x = 1 * np.outer(np.cos(u), np.sin(v))
@@ -569,12 +547,12 @@ class QuRegister:
         z = 1 * np.outer(np.ones(np.size(u)), np.cos(v))
         ncols = int(np.ceil(np.sqrt(self.nr_qubits)))
         nrows = int(np.ceil(self.nr_qubits/ncols))
-        qubits = list(reversed(self.get_qubits()))
+        qubits = self.get_qubits()
         fig, axs = plt.subplots(ncols=ncols, nrows=nrows, subplot_kw={'projection':'3d', 'title':''})
         axs = axs.reshape((nrows, ncols)) # in case of nrows or ncols = 1
         for i in range(nrows):
             for j in range(ncols):
-                idx = (self.nr_qubits - 1) - (i*ncols + j)
+                idx = (self.nr_qubits - 1) - (i*ncols + j) if self.msb_to_lsb else i*ncols + j
                 if idx < self.nr_qubits:
                     axs[i][j].plot_wireframe(x, y, z, color='lightgray', linestyle=':')
                     axs[i][j].plot3D(np.cos(u), np.sin(u), np.zeros(u.shape), color='lightblue', linestyle='-.')
@@ -598,7 +576,7 @@ class QuRegister:
                     axs[i][j].quiver(0, 0, 0, q.x, q.y, q.z, color='r', linewidth=2)
                     axs[i][j].legend(title_fontsize=14, title="$\\bf{"+f"q_{idx}"+"}$", handles=[])
                 axs[i][j]._axis3don = False
-        fig.suptitle(title)
+        fig.suptitle(title + '\n' + ('leftmost MSB' if self.msb_to_lsb else 'rightmost MSB'), fontsize=12)
         if show:
             plt.show()
     def apply(self, *args):

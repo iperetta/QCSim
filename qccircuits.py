@@ -1,15 +1,18 @@
 import qubit as qb
 from qugate import QuGates as qg
 
+# cs_bit_order = True # msb_to_lsb parameter
+
 # 2-qubits Register inicialization 00-01-10-11
 for j in range(2):
     for i in range(2):
         qr = qb.QuRegister(2)
+        # qr.msb_leftmost()
         if i == 1:
             qr.apply((qg.X, 0))
         if j == 1:
             qr.apply((qg.X, 1))
-        qr.table_prob(msb_to_lsb=True)
+        print(qr.table_prob())
         qr.visualize(show=False)
         qr.simulate(10000, title=f"|{i}{j}❭")
 

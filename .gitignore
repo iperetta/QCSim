@@ -133,5 +133,6 @@ dmypy.json
 
 tempCodeRunnerFile.py
 tst_*.*
+bkp_*.*
 *.bkp
 *.png
